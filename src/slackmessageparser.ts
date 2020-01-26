@@ -17,6 +17,7 @@ limitations under the License.
 import {
 	ISlackMessage, AllBlocks, ISlackBlockRichText, ISlackRichTextSection, ISlackBlockText, ISlackBlockEmoji,
 	ISlackRichTextPre, ISlackRichTextQuote, ISlackRichTextList, ISlackBlockUser, ISlackBlockChannel, ISlackBlockBroadcast,
+	ISlackBlockLink,
 } from "./slacktypes";
 import * as escapeHtml from "escape-html";
 import * as unescapeHtml from "unescape-html";
@@ -290,6 +291,10 @@ export class SlackBlocksParser {
 				}
 				return escapeHtml(e);
 			}
+			case "link": {
+				const url = escapeHtml((block as ISlackBlockLink).url);
+				return `<a href="${url}">${url}</a>`;
+			}
 			case "user": {
 				const id = (block as ISlackBlockUser).user_id;
 				const entity = await opts.callbacks.getUser(id, "");
@@ -354,6 +359,8 @@ export class SlackBlocksParser {
 				return retStr;
 			}
 			default:
+				console.log("================");
+				console.log(block);
 				return `Unsupported block of type ${block.type}`;
 		}
 	}

@@ -33,6 +33,12 @@ export interface ISlackBlockEmoji extends Block {
 	name: string;
 }
 
+// links
+export interface ISlackBlockLink extends Block {
+	type: "link";
+	url: string;
+}
+
 // user mentions
 export interface ISlackBlockUser extends Block {
 	type: "user";
@@ -84,7 +90,8 @@ export interface ISlackBlockRichText extends Block {
 }
 
 export type AllBlocks = KnownBlock | ISlackBlockRichText | ISlackRichTextSection | ISlackBlockText | ISlackBlockEmoji
-	| ISlackRichTextPre | ISlackRichTextQuote | ISlackRichTextList | ISlackBlockUser | ISlackBlockChannel | ISlackBlockBroadcast;
+	| ISlackRichTextPre | ISlackRichTextQuote | ISlackRichTextList | ISlackBlockUser | ISlackBlockChannel
+	| ISlackBlockBroadcast | ISlackBlockLink;
 
 export interface ISlackMessage {
 	text: string;
