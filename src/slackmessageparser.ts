@@ -236,7 +236,7 @@ export class SlackBlocksParser {
 				opts.inBlock = true;
 				const content = await this.parseBlocks(opts, (block as ISlackRichTextSection).elements);
 				opts.inBlock = false;
-				return content;
+				return `<p>${content}</p>`;
 			}
 			case "rich_text_preformatted":
 				return `<pre><code>${await this.parseBlocks(opts, (block as ISlackRichTextPre).elements)}</code></pre>`;
@@ -253,7 +253,7 @@ export class SlackBlocksParser {
 				if (list.style === "ordered") {
 					return `<ol start="${parseInt(((list.index || 0) + 1).toString(), 10)}">${parsedBlocks}</ol>`;
 				} else {
-					return `<li>${parsedBlocks}</li>`;
+					return `<ul>${parsedBlocks}</ul>`;
 				}
 				break;
 			}
@@ -274,9 +274,9 @@ export class SlackBlocksParser {
 						}
 					}
 				}
-				const openTags = tags.map((tag) => `<${tag}>`);
+				const openTags = tags.map((tag) => `<${tag}>`).join("");
 				tags.reverse();
-				const closeTags = tags.map((tag) => `</${tag}>`);
+				const closeTags = tags.map((tag) => `</${tag}>`).join("");
 				return `${openTags}${content}${closeTags}`;
 			}
 			case "emoji": {
