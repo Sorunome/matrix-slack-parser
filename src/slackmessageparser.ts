@@ -74,6 +74,7 @@ export class SlackMarkdownParser {
 	): Promise<string> {
 		let content = markdown.toHTML(str, {
 			slackOnly: mdOpts.slackOnly || false,
+			escapeHTML: !mdOpts.slackOnly,
 			slackCallbacks: this.getSlackeParseCallbacks(opts, mdOpts),
 			noExtraSpanTags: true,
 		});
@@ -122,7 +123,7 @@ export class SlackMarkdownParser {
 			let replace = "";
 			if (chan) {
 				const url = MATRIX_TO_LINK + escapeHtml(chan.mxid);
-				replace = mdOpts.slackOnly ? chan.name : `<a href="${url}">${escapeHtml(chan.name)}</a>`;
+				replace = mdOpts.slackOnly ? "#" + chan.name : `<a href="${url}">${escapeHtml(chan.name)}</a>`;
 			} else if (name) {
 				replace = "#" + (mdOpts.slackOnly ? name : escapeHtml(name));
 			} else {
@@ -143,7 +144,7 @@ export class SlackMarkdownParser {
 		while (results !== null) {
 			const id = results[ID_USERGROUP_INSERT_REGEX];
 			const name = results[NAME_USERGROUP_INSERT_REGEX];
-			const usergroup = await opts.callbacks.getChannel(id, name);
+			const usergroup = await opts.callbacks.getUsergroup(id, name);
 			let replace = "";
 			if (usergroup) {
 				if (usergroup.mxid) {
@@ -153,7 +154,7 @@ export class SlackMarkdownParser {
 					replace = mdOpts.slackOnly ? usergroup.name : escapeHtml(usergroup.name);
 				}
 			} else if (name) {
-				replace = "#" + (mdOpts.slackOnly ? name : escapeHtml(name));
+				replace = mdOpts.slackOnly ? name : escapeHtml(name);
 			} else {
 				replace = mdOpts.slackOnly ? `<!subteam^${id}>` : `&lt;!subteam^${escapeHtml(id)}&gt;`;
 			}

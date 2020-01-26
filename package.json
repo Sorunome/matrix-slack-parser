@@ -5,7 +5,7 @@
   "main": "./lib/index.js",
   "scripts": {
     "prepublishOnly": "npm run build",
-    "test": "npm run-script build && mocha --opts test/mocha.opts",
+    "test": "npm run-script build && mocha",
     "lint": "tslint --project ./tsconfig.json -t stylish",
     "coverage": "tsc && nyc mocha",
     "build": "tsc"
