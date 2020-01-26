@@ -418,6 +418,15 @@ describe("SlackBlocksParser", () => {
 			const ret = await blocksParser["parseBlock"]({} as any, block);
 			expect(ret).to.equal(":asdf:");
 		});
+		it("should parse link blocks", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "link",
+				url: "https://example.org",
+			} as any;
+			const ret = await blocksParser["parseBlock"]({} as any, block);
+			expect(ret).to.equal("<a href=\"https://example.org\">https://example.org</a>");
+		});
 		it("should parse user blocks", async () => {
 			const blocksParser = new SlackBlocksParser(markdownParser);
 			const block = {
