@@ -14,6 +14,7 @@ limitations under the License.
 
 import * as Parser from "node-html-parser";
 import { Util } from "./util";
+import { IMatrixMessage } from "./matrixtypes";
 
 const MATRIX_TO_LINK = "https://matrix.to/#/";
 
@@ -33,7 +34,7 @@ export class MatrixMessageParser {
 	private listBulletPoints: string[] = ["●", "○", "■", "‣"];
 	public async FormatMessage(
 		opts: IMatrixMessageParserOpts,
-		eventContent: any, // tslint:disable-line no-any
+		eventContent: IMatrixMessage,
 	): Promise<string> {
 		let reply = "";
 		if (eventContent.formatted_body) {
