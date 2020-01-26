@@ -367,6 +367,13 @@ export class SlackMessageParser {
 		this.blocksParser = new SlackBlocksParser(this.markdownParser);
 	}
 
+	public async FormatText(
+		opts: ISlackMessageParserOpts,
+		text: string,
+	): Promise<SlackMessageParserResult> {
+		return await this.FormatMessage(opts, { text });
+	}
+
 	public async FormatMessage(
 		opts: ISlackMessageParserOpts,
 		event: ISlackMessage,
