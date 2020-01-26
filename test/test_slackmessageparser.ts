@@ -13,7 +13,7 @@ limitations under the License.
 */
 
 import { expect } from "chai";
-import { SlackMarkdownParser, SlackBlocksParser } from "../src/slackmessageparser";
+import { SlackMarkdownParser, SlackBlocksParser, SlackMessageParser } from "../src/slackmessageparser";
 
 // we are a test file and thus our linting rules are slightly different
 // tslint:disable:no-unused-expression max-file-line-count no-any no-magic-numbers no-string-literal
@@ -570,6 +570,178 @@ describe("SlackBlocksParser", () => {
 			} as any;
 			const ret = await blocksParser["parseBlock"]({} as any, block);
 			expect(ret).to.equal("<p><strong>Awesome</strong> Fox </p>");
+		});
+	});
+});
+
+describe("SlackMessageParser", () => {
+	const messageParser = new SlackMessageParser();
+	describe("simple", () => {
+		it("should parse simple messages", async () => {
+			const event = {
+				text: "*yay* this is _awesome_",
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("*yay* this is _awesome_");
+			expect(ret.formattedBody).to.equal("<strong>yay</strong> this is <em>awesome</em>");
+		});
+		it("should parse user pills", async () => {
+			const event = {
+				text: "Hey <@blah>!",
+			} as any;
+			const opts = { callbacks: {
+				getUser: async (id, name) => {
+					return {
+						mxid: `@_slack_${id}:example.org`,
+						name: "User" + id,
+					};
+				},
+			}} as any;
+			const ret = await messageParser.FormatMessage(opts, event);
+			expect(ret.body).to.equal("Hey Userblah!");
+			expect(ret.formattedBody).to.equal("Hey <a href=\"https://matrix.to/#/@_slack_blah:example.org\">Userblah</a>!");
+		});
+		it("should parse text", async () => {
+			const ret = await messageParser.FormatText({} as any, "*yay* this is _awesome_");
+			expect(ret.body).to.equal("*yay* this is _awesome_");
+			expect(ret.formattedBody).to.equal("<strong>yay</strong> this is <em>awesome</em>");
+		});
+	});
+	describe("attachments", () => {
+		it("should handle blank attachments", async () => {
+			const event = {
+				text: "",
+				attachments: [{ }],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p></p>");
+		});
+		it("should handle attachments with pretext", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					pretext: "*yay*",
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\n*yay*\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p><strong>yay</strong><br></p>");
+		});
+		it("should handle attachments with an author", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					author_name: "Fox",
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\nFox\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p>Fox<br></p>");
+		});
+		it("should handle attachments with author icon and link", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					author_name: "Fox",
+					author_icon: "https://example.org/fox.png",
+					author_link: "https://example.org",
+				}],
+			} as any;
+			const opts = { callbacks: {
+				urlToMxc: async (url) => url,
+			}} as any;
+			const ret = await messageParser.FormatMessage(opts, event);
+			expect(ret.body).to.equal("\n\n---------------------\n[Fox](https://example.org)\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p><img height=\"32\" src=\"https://example.org/fox.png\" /> " +
+				"<a href=\"https://example.org\">Fox</a><br></p>");
+		});
+		it("should handle attachments with a title", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					title: "Foxies!",
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\n## Foxies!\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p><h2>Foxies!</h2></p>");
+		});
+		it("should handle attachments with a title link", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					title: "Foxies!",
+					title_link: "https://example.org"
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\n## [Foxies!](https://example.org)\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p><h2><a href=\"https://example.org\">Foxies!</a></h2></p>");
+		});
+		it("should handle attachments with text", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					text: "Foxies are _awesome_!",
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\nFoxies are _awesome_!\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p>Foxies are <em>awesome</em>!<br></p>");
+		});
+		it("should handle attachment fields", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					fields: [
+						{
+							title: "a",
+							value: "1",
+						},
+						{
+							title: "b",
+							value: "2",
+						},
+						{
+							title: "c",
+							value: "3",
+						},
+						{
+							title: "d",
+							value: "4",
+						},
+					],
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\n*a*\n1\n*b*\n2\n*c*\n3\n*d*\n4\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p><table><tr><td><strong>a</strong><br>1</td>" +
+				"<td><strong>b</strong><br>2</td></tr><tr><td><strong>c</strong><br>3</td>" +
+				"<td><strong>d</strong><br>4</td></tr></table></p>");
+		});
+		it("should handle attachment image_url's", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					image_url: "https://example.org/fox.png",
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\nImage: https://example.org/fox.png\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p>Image: " +
+				"<a href=\"https://example.org/fox.png\">https://example.org/fox.png</a><br></p>");
+		});
+		it("should handle attachments with footer", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					footer: "byebye",
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("\n\n---------------------\nbyebye\n");
+			expect(ret.formattedBody).to.equal("<br><br><hr><p>byebye<br></p>");
 		});
 	});
 });

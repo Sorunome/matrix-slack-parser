@@ -389,8 +389,10 @@ export class SlackMessageParser {
 			result.formattedBody = await markdownHtml(text);
 		}
 		if (event.attachments && event.attachments.length > 0) {
+			result.body += "\n\n";
+			result.formattedBody += "<br><br>";
 			for (const attachment of event.attachments) {
-				result.body += "---------------------";
+				result.body += "---------------------\n";
 				result.formattedBody += "<hr><p>";
 				if (attachment.pretext) {
 					result.body += (await markdownPlain(attachment.pretext)) + "\n";
@@ -436,7 +438,7 @@ export class SlackMessageParser {
 						result.body += `${await markdownPlain(field.value)}\n`;;
 						const title = await markdownHtml(field.title);
 						const value = await markdownHtml(field.value);
-						result.formattedBody += `<td>${title}<br>${value}</td>`;
+						result.formattedBody += `<td><strong>${title}</strong><br>${value}</td>`;
 						// tslint:disable-next-line no-magic-numbers
 						if ((i % 2) && i < attachment.fields.length - 1) {
 							result.formattedBody += "</tr><tr>";
