@@ -30,7 +30,8 @@ export interface IMatrixMessageParserOpts {
 }
 
 export class MatrixMessageParser {
-	public static async FormatMessage(
+	private listBulletPoints: string[] = ["●", "○", "■", "‣"];
+	public async FormatMessage(
 		opts: IMatrixMessageParserOpts,
 		eventContent: any, // tslint:disable-line no-any
 	): Promise<string> {
@@ -47,14 +48,31 @@ export class MatrixMessageParser {
 			reply = await this.walkNode(opts, parsed);
 			reply = reply.replace(/\s*$/, ""); // trim off whitespace at end
 		} else {
-			reply = eventContent.body;
+			reply = await this.escapeSlack(opts, eventContent.body);
 		}
 		return reply;
 	}
 
-	private static listBulletPoints: string[] = ["●", "○", "■", "‣"];
+	private async escapeSlack(opts: IMatrixMessageParserOpts, msg: string): Promise<string> {
+		// Check the Matrix permissions to see if this user has the required
+		// power level to notify with @room; if so, replace it with @here.
+		if (msg.includes("@room") && await opts.callbacks.canNotifyRoom()) {
+			msg = msg.replace(/@room/g, "<!channel>");
+		}
+		const escapeChars = ["\\", "*", "_", "~", "`"];
+		msg = msg.split(" ").map((s) => {
+			if (s.match(/^https?:\/\//)) {
+				return s;
+			}
+			escapeChars.forEach((char) => {
+				s = s.replace(new RegExp("\\" + char, "g"), "\\" + char);
+			});
+			return s;
+		}).join(" ");
+		return msg;
+	}
 
-	private static parsePreContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): string {
+	private parsePreContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): string {
 		let text = node.text;
 		const match = text.match(/^<code([^>]*)>/i);
 		if (!match) {
@@ -74,16 +92,16 @@ export class MatrixMessageParser {
 		return text;
 	}
 
-	private static async parseLinkContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
+	private async parseLinkContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
 		const attrs = node.attributes;
 		const content = await this.walkChildNodes(opts, node);
 		if (!attrs.href || content === attrs.href) {
 			return content;
 		}
-		return `[${content}](${attrs.href})`;
+		return `<${attrs.href}|${content}>`;
 	}
 
-	private static async parseUser(opts: IMatrixMessageParserOpts, id: string): Promise<string> {
+	private async parseUser(opts: IMatrixMessageParserOpts, id: string): Promise<string> {
 		const retId = await opts.callbacks.getUserId(id);
 		if (!retId) {
 			return "";
@@ -91,7 +109,7 @@ export class MatrixMessageParser {
 		return `<@${retId}>`;
 	}
 
-	private static async parseChannel(opts: IMatrixMessageParserOpts, id: string): Promise<string> {
+	private async parseChannel(opts: IMatrixMessageParserOpts, id: string): Promise<string> {
 		const retId = await opts.callbacks.getChannelId(id);
 		if (!retId) {
 			return "";
@@ -99,7 +117,7 @@ export class MatrixMessageParser {
 		return `<#${retId}>`;
 	}
 
-	private static async parsePillContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
+	private async parsePillContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
 		const attrs = node.attributes;
 		if (!attrs.href || !attrs.href.startsWith(MATRIX_TO_LINK)) {
 			return await this.parseLinkContent(opts, node);
@@ -121,14 +139,15 @@ export class MatrixMessageParser {
 		return reply;
 	}
 
-	private static async parseImageContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
+	private async parseImageContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
 		const EMOTE_NAME_REGEX = /^:?(\w+):?/;
 		const attrs = node.attributes;
-		const name = attrs.alt || attrs.title || "";
-		return attrs.src ? `![${name}](${attrs.src})` : name;
+		const name = await this.escapeSlack(opts, attrs.alt || attrs.title || "");
+		const url = opts.callbacks.mxcUrlToHttp(attrs.src || "");
+		return attrs.src ? `<${url}|${name}>` : name;
 	}
 
-	private static async parseBlockquoteContent(
+	private async parseBlockquoteContent(
 		opts: IMatrixMessageParserOpts,
 		node: Parser.HTMLElement,
 	): Promise<string> {
@@ -141,7 +160,7 @@ export class MatrixMessageParser {
 		return msg;
 	}
 
-	private static async parseSpanContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
+	private async parseSpanContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
 		const content = await this.walkChildNodes(opts, node);
 		const attrs = node.attributes;
 		if (attrs["data-mx-spoiler"] !== undefined) {
@@ -154,7 +173,7 @@ export class MatrixMessageParser {
 		return content;
 	}
 
-	private static async parseUlContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
+	private async parseUlContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
 		opts.listDepth!++;
 		const entries = await this.arrayChildNodes(opts, node, ["li"]);
 		opts.listDepth!--;
@@ -170,7 +189,7 @@ export class MatrixMessageParser {
 		return msg;
 	}
 
-	private static async parseOlContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
+	private async parseOlContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<string> {
 		opts.listDepth!++;
 		const entries = await this.arrayChildNodes(opts, node, ["li"]);
 		opts.listDepth!--;
@@ -191,7 +210,7 @@ export class MatrixMessageParser {
 		return msg;
 	}
 
-	private static async arrayChildNodes(
+	private async arrayChildNodes(
 		opts: IMatrixMessageParserOpts,
 		node: Parser.Node,
 		types: string[] = [],
@@ -209,7 +228,7 @@ export class MatrixMessageParser {
 		return replies;
 	}
 
-	private static async walkChildNodes(opts: IMatrixMessageParserOpts, node: Parser.Node): Promise<string> {
+	private async walkChildNodes(opts: IMatrixMessageParserOpts, node: Parser.Node): Promise<string> {
 		let reply = "";
 		await Util.AsyncForEach(node.childNodes, async (child) => {
 			reply += await this.walkNode(opts, child);
@@ -217,13 +236,13 @@ export class MatrixMessageParser {
 		return reply;
 	}
 
-	private static async walkNode(opts: IMatrixMessageParserOpts, node: Parser.Node): Promise<string> {
+	private async walkNode(opts: IMatrixMessageParserOpts, node: Parser.Node): Promise<string> {
 		if (node.nodeType === Parser.NodeType.TEXT_NODE) {
 			// ignore \n between single nodes
 			if ((node as Parser.TextNode).text === "\n") {
 				return "";
 			}
-			return (node as Parser.TextNode).text;
+			return await this.escapeSlack(opts, (node as Parser.TextNode).text);
 		} else if (node.nodeType === Parser.NodeType.ELEMENT_NODE) {
 			const nodeHtml = node as Parser.HTMLElement;
 			switch (nodeHtml.tagName) {
