@@ -73,9 +73,9 @@ export class SlackMarkdownParser {
 		mdOpts: ISlackMarkdownParserOpts,
 		str: string,
 	): Promise<string> {
-		str = unescapeHtml(str);
 		let content = markdown.toHTML(str, {
 			slackOnly: mdOpts.slackOnly || false,
+			escapeHTML: !mdOpts.slackOnly,
 			slackCallbacks: this.getSlackeParseCallbacks(opts, mdOpts),
 			noExtraSpanTags: true,
 		});
@@ -124,7 +124,7 @@ export class SlackMarkdownParser {
 			let replace = "";
 			if (chan) {
 				const url = MATRIX_TO_LINK + escapeHtml(chan.mxid);
-				replace = mdOpts.slackOnly ? chan.name : `<a href="${url}">${escapeHtml(chan.name)}</a>`;
+				replace = mdOpts.slackOnly ? "#" + chan.name : `<a href="${url}">${escapeHtml(chan.name)}</a>`;
 			} else if (name) {
 				replace = "#" + (mdOpts.slackOnly ? name : escapeHtml(name));
 			} else {
@@ -145,7 +145,7 @@ export class SlackMarkdownParser {
 		while (results !== null) {
 			const id = results[ID_USERGROUP_INSERT_REGEX];
 			const name = results[NAME_USERGROUP_INSERT_REGEX];
-			const usergroup = await opts.callbacks.getChannel(id, name);
+			const usergroup = await opts.callbacks.getUsergroup(id, name);
 			let replace = "";
 			if (usergroup) {
 				if (usergroup.mxid) {
@@ -155,7 +155,7 @@ export class SlackMarkdownParser {
 					replace = mdOpts.slackOnly ? usergroup.name : escapeHtml(usergroup.name);
 				}
 			} else if (name) {
-				replace = "#" + (mdOpts.slackOnly ? name : escapeHtml(name));
+				replace = mdOpts.slackOnly ? name : escapeHtml(name);
 			} else {
 				replace = mdOpts.slackOnly ? `<!subteam^${id}>` : `&lt;!subteam^${escapeHtml(id)}&gt;`;
 			}
@@ -237,7 +237,7 @@ export class SlackBlocksParser {
 				opts.inBlock = true;
 				const content = await this.parseBlocks(opts, (block as ISlackRichTextSection).elements);
 				opts.inBlock = false;
-				return content;
+				return `<p>${content}</p>`;
 			}
 			case "rich_text_preformatted":
 				return `<pre><code>${await this.parseBlocks(opts, (block as ISlackRichTextPre).elements)}</code></pre>`;
@@ -254,7 +254,7 @@ export class SlackBlocksParser {
 				if (list.style === "ordered") {
 					return `<ol start="${parseInt(((list.index || 0) + 1).toString(), 10)}">${parsedBlocks}</ol>`;
 				} else {
-					return `<li>${parsedBlocks}</li>`;
+					return `<ul>${parsedBlocks}</ul>`;
 				}
 				break;
 			}
@@ -275,9 +275,9 @@ export class SlackBlocksParser {
 						}
 					}
 				}
-				const openTags = tags.map((tag) => `<${tag}>`);
+				const openTags = tags.map((tag) => `<${tag}>`).join("");
 				tags.reverse();
-				const closeTags = tags.map((tag) => `</${tag}>`);
+				const closeTags = tags.map((tag) => `</${tag}>`).join("");
 				return `${openTags}${content}${closeTags}`;
 			}
 			case "emoji": {
@@ -388,15 +388,18 @@ export class SlackMessageParser {
 		const markdownPlain = async (str) => await this.markdownParser.parseMarkdown(opts, { slackOnly: true }, str);
 		const markdownHtml = async (str) => await this.markdownParser.parseMarkdown(opts, { slackOnly: false }, str);
 		const result = new SlackMessageParserResult();
-		result.body = await markdownPlain(event.text);
+		const text = unescapeHtml(event.text);
+		result.body = await markdownPlain(text);
 		if (event.blocks && event.blocks.length > 0) {
 			result.formattedBody = await this.blocksParser.parseBlocks(opts, event.blocks);
 		} else {
-			result.formattedBody = await markdownHtml(event.text);
+			result.formattedBody = await markdownHtml(text);
 		}
 		if (event.attachments && event.attachments.length > 0) {
+			result.body += "\n\n";
+			result.formattedBody += "<br><br>";
 			for (const attachment of event.attachments) {
-				result.body += "---------------------";
+				result.body += "---------------------\n";
 				result.formattedBody += "<hr><p>";
 				if (attachment.pretext) {
 					result.body += (await markdownPlain(attachment.pretext)) + "\n";
@@ -442,7 +445,7 @@ export class SlackMessageParser {
 						result.body += `${await markdownPlain(field.value)}\n`;;
 						const title = await markdownHtml(field.title);
 						const value = await markdownHtml(field.value);
-						result.formattedBody += `<td>${title}<br>${value}</td>`;
+						result.formattedBody += `<td><strong>${title}</strong><br>${value}</td>`;
 						// tslint:disable-next-line no-magic-numbers
 						if ((i % 2) && i < attachment.fields.length - 1) {
 							result.formattedBody += "</tr><tr>";
