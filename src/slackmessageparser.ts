@@ -72,7 +72,6 @@ export class SlackMarkdownParser {
 		mdOpts: ISlackMarkdownParserOpts,
 		str: string,
 	): Promise<string> {
-		str = unescapeHtml(str);
 		let content = markdown.toHTML(str, {
 			slackOnly: mdOpts.slackOnly || false,
 			slackCallbacks: this.getSlackeParseCallbacks(opts, mdOpts),
@@ -381,11 +380,12 @@ export class SlackMessageParser {
 		const markdownPlain = async (str) => await this.markdownParser.parseMarkdown(opts, { slackOnly: true }, str);
 		const markdownHtml = async (str) => await this.markdownParser.parseMarkdown(opts, { slackOnly: false }, str);
 		const result = new SlackMessageParserResult();
-		result.body = await markdownPlain(event.text);
+		const text = unescapeHtml(event.text);
+		result.body = await markdownPlain(text);
 		if (event.blocks && event.blocks.length > 0) {
 			result.formattedBody = await this.blocksParser.parseBlocks(opts, event.blocks);
 		} else {
-			result.formattedBody = await markdownHtml(event.text);
+			result.formattedBody = await markdownHtml(text);
 		}
 		if (event.attachments && event.attachments.length > 0) {
 			for (const attachment of event.attachments) {
