@@ -19,6 +19,7 @@ import {
 	ISlackRichTextPre, ISlackRichTextQuote, ISlackRichTextList, ISlackBlockUser, ISlackBlockChannel, ISlackBlockBroadcast,
 } from "./slacktypes";
 import * as escapeHtml from "escape-html";
+import * as unescapeHtml from "unescape-html";
 import * as emoji from "node-emoji";
 import { SectionBlock, PlainTextElement, MrkdwnElement, ImageBlock, ContextBlock, ImageElement } from "@slack/types";
 import * as markdown from "slack-markdown";
@@ -53,6 +54,7 @@ export interface ISlackMessageParserCallbacks {
 
 export interface ISlackMessageParserOpts {
 	callbacks: ISlackMessageParserCallbacks;
+	inBlock?: boolean;
 }
 
 interface ISlackMarkdownParserOpts {
@@ -70,6 +72,7 @@ export class SlackMarkdownParser {
 		mdOpts: ISlackMarkdownParserOpts,
 		str: string,
 	): Promise<string> {
+		str = unescapeHtml(str);
 		let content = markdown.toHTML(str, {
 			slackOnly: mdOpts.slackOnly || false,
 			slackCallbacks: this.getSlackeParseCallbacks(opts, mdOpts),
@@ -101,6 +104,7 @@ export class SlackMarkdownParser {
 			} else {
 				replace = mdOpts.slackOnly ? `<@${id}>` : `&lt;@${escapeHtml(id)}&gt;`;
 			}
+			content = content.replace(results[0], replace);
 			results = USER_INSERT_REGEX.exec(content);
 		}
 		return content;
@@ -125,6 +129,7 @@ export class SlackMarkdownParser {
 			} else {
 				replace = mdOpts.slackOnly ? `<#${id}>` : `&lt;#${escapeHtml(id)}&gt;`;
 			}
+			content = content.replace(results[0], replace);
 			results = CHAN_INSERT_REGEX.exec(content);
 		}
 		return content;
@@ -153,6 +158,7 @@ export class SlackMarkdownParser {
 			} else {
 				replace = mdOpts.slackOnly ? `<!subteam^${id}>` : `&lt;!subteam^${escapeHtml(id)}&gt;`;
 			}
+			content = content.replace(results[0], replace);
 			results = USERGROUP_INSERT_REGEX.exec(content);
 		}
 		return content;
@@ -223,8 +229,15 @@ export class SlackBlocksParser {
 		switch (block.type) {
 			case "rich_text":
 				return await this.parseBlocks(opts, (block as ISlackBlockRichText).elements);
-			case "rich_text_section":
-				return `<p>${await this.parseBlocks(opts, (block as ISlackRichTextSection).elements)}</p>`;
+			case "rich_text_section": {
+				if (opts.inBlock) {
+					return await this.parseBlocks(opts, (block as ISlackRichTextSection).elements);
+				}
+				opts.inBlock = true;
+				const content = await this.parseBlocks(opts, (block as ISlackRichTextSection).elements);
+				opts.inBlock = false;
+				return content;
+			}
 			case "rich_text_preformatted":
 				return `<pre><code>${await this.parseBlocks(opts, (block as ISlackRichTextPre).elements)}</code></pre>`;
 			case "rich_text_quote":
@@ -232,11 +245,13 @@ export class SlackBlocksParser {
 			case "rich_text_list": {
 				const list = block as ISlackRichTextList;
 				let parsedBlocks = "";
+				opts.inBlock = true;
 				for (const el of list.elements) {
 					parsedBlocks += `<li>${await this.parseBlock(opts, el)}</li>`;
 				}
+				opts.inBlock = false;
 				if (list.style === "ordered") {
-					return `<ol start="${parseInt((list.index || 0).toString(), 10)}">${parsedBlocks}</ol>`;
+					return `<ol start="${parseInt(((list.index || 0) + 1).toString(), 10)}">${parsedBlocks}</ol>`;
 				} else {
 					return `<li>${parsedBlocks}</li>`;
 				}
@@ -252,9 +267,11 @@ export class SlackBlocksParser {
 					strike: "del",
 					code: "code",
 				};
-				for (const prop in propMap) {
-					if (propMap.hasOwnProperty(prop) && text[prop]) {
-						tags.push(propMap[prop]);
+				if (text.style) {
+					for (const prop in propMap) {
+						if (propMap.hasOwnProperty(prop) && text.style[prop]) {
+							tags.push(propMap[prop]);
+						}
 					}
 				}
 				const openTags = tags.map((tag) => `<${tag}>`);
