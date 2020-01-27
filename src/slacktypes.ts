@@ -31,12 +31,14 @@ export interface ISlackBlockText extends Block {
 export interface ISlackBlockEmoji extends Block {
 	type: "emoji";
 	name: string;
+	skin_tone?: string;
 }
 
 // links
 export interface ISlackBlockLink extends Block {
 	type: "link";
 	url: string;
+	text?: string;
 }
 
 // user mentions
@@ -45,16 +47,42 @@ export interface ISlackBlockUser extends Block {
 	user_id: string;
 }
 
+// usergroup mentions
+export interface ISlackBlockUsergroup extends Block {
+	type: "usergroup";
+	usergroup_id: string;
+}
+
 // channel mentions
 export interface ISlackBlockChannel extends Block {
 	type: "channel";
 	channel_id: string;
 }
 
+// team mentions
+export interface ISlackBlockTeam extends Block {
+	type: "team";
+	team_id: string;
+}
+
 // broadcast mentions
 export interface ISlackBlockBroadcast extends Block {
 	type: "broadcast";
 	range: "here" | "channel" | "everyone";
+}
+
+// color block???
+export interface ISlackBlockColor extends Block {
+	type: "color";
+	value?: string; // ???
+}
+
+// date block???
+export interface ISlackBlockDate extends Block {
+	type: "date";
+	timestamp: string;
+	format: string;
+	fallback?: string;
 }
 
 // normal paragraph
@@ -91,7 +119,8 @@ export interface ISlackBlockRichText extends Block {
 
 export type AllBlocks = KnownBlock | ISlackBlockRichText | ISlackRichTextSection | ISlackBlockText | ISlackBlockEmoji
 	| ISlackRichTextPre | ISlackRichTextQuote | ISlackRichTextList | ISlackBlockUser | ISlackBlockChannel
-	| ISlackBlockBroadcast | ISlackBlockLink;
+	| ISlackBlockBroadcast | ISlackBlockLink | ISlackBlockUsergroup | ISlackBlockColor | ISlackBlockDate
+	| ISlackBlockTeam;
 
 export interface ISlackMessageAttachment extends MessageAttachment {
 	author_id?: string;

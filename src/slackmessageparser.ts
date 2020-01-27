@@ -17,7 +17,7 @@ limitations under the License.
 import {
 	ISlackMessage, AllBlocks, ISlackBlockRichText, ISlackRichTextSection, ISlackBlockText, ISlackBlockEmoji,
 	ISlackRichTextPre, ISlackRichTextQuote, ISlackRichTextList, ISlackBlockUser, ISlackBlockChannel, ISlackBlockBroadcast,
-	ISlackBlockLink,
+	ISlackBlockLink, ISlackBlockUsergroup, ISlackBlockTeam, ISlackBlockDate, ISlackBlockColor,
 } from "./slacktypes";
 import * as escapeHtml from "escape-html";
 import * as unescapeHtml from "unescape-html";
@@ -25,6 +25,7 @@ import * as emoji from "node-emoji";
 import { SectionBlock, PlainTextElement, MrkdwnElement, ImageBlock, ContextBlock, ImageElement } from "@slack/types";
 import * as markdown from "slack-markdown";
 import * as dateFormat from "dateformat";
+import { IMatrixMessage } from "./matrixtypes";
 
 const MATRIX_TO_LINK = "https://matrix.to/#/";
 const EMOJI_SIZE = 32;
@@ -51,6 +52,7 @@ export interface ISlackMessageParserCallbacks {
 	getUser: (id: string, name: string) => Promise<ISlackMessageParserEntity | null>;
 	getChannel: (id: string, name: string) => Promise<ISlackMessageParserEntity | null>;
 	getUsergroup: (id: string, name: string) => Promise<ISlackMessageParserEntity | null>;
+	getTeam: (id: string, name: string) => Promise<ISlackMessageParserEntity | null>;
 	urlToMxc: (url: string) => Promise<string | null>;
 }
 
@@ -61,11 +63,6 @@ export interface ISlackMessageParserOpts {
 
 interface ISlackMarkdownParserOpts {
 	slackOnly?: boolean;
-}
-
-export class SlackMessageParserResult {
-	public formattedBody: string;
-	public body: string;
 }
 
 export class SlackMarkdownParser {
@@ -261,7 +258,8 @@ export class SlackBlocksParser {
 			}
 			case "text": {
 				const text = block as ISlackBlockText;
-				const content = escapeHtml(text.text);
+				let content = escapeHtml(text.text);
+				content = content.replace(/\n/g, "<br>");
 				const tags: string[] = [];
 				const propMap = {
 					bold: "strong",
@@ -293,8 +291,10 @@ export class SlackBlocksParser {
 				return escapeHtml(e);
 			}
 			case "link": {
-				const url = escapeHtml((block as ISlackBlockLink).url);
-				return `<a href="${url}">${url}</a>`;
+				const link = block as ISlackBlockLink;
+				const url = escapeHtml(link.url);
+				const content = link.text ? escapeHtml(link.text) : url;
+				return `<a href="${url}">${content}</a>`;
 			}
 			case "user": {
 				const id = (block as ISlackBlockUser).user_id;
@@ -305,6 +305,19 @@ export class SlackBlocksParser {
 					return escapeHtml(`<@${id}>`);
 				}
 			}
+			case "usergroup": {
+				const id = (block as ISlackBlockUsergroup).usergroup_id;
+				const entity = await opts.callbacks.getUsergroup(id, "");
+				if (entity) {
+					if (entity.mxid) {
+						return `<a href="${MATRIX_TO_LINK}${escapeHtml(entity.mxid)}">${escapeHtml(entity.name)}</a>`;
+					} else {
+						return escapeHtml(entity.name);
+					}
+				} else {
+					return escapeHtml(`<!subteam^${id}>`);
+				}
+			}
 			case "channel": {
 				const id = (block as ISlackBlockChannel).channel_id;
 				const entity = await opts.callbacks.getChannel(id, "");
@@ -313,6 +326,21 @@ export class SlackBlocksParser {
 				} else {
 					return escapeHtml(`<#${id}>`);
 				}
+			}
+			case "team": {
+				const id = (block as ISlackBlockTeam).team_id;
+				const entity = await opts.callbacks.getTeam(id, "");
+				if (entity) {
+					return `<a href="${MATRIX_TO_LINK}${escapeHtml(entity.mxid)}">${escapeHtml(entity.name)}</a>`;
+				} else {
+					return escapeHtml(`<!team^${id}>`);
+				}
+			}
+			case "date":
+				return escapeHtml((block as ISlackBlockDate).fallback);
+			case "color": {
+				const c = escapeHtml((block as ISlackBlockColor).value);
+				return `${c}<font color="${c}">\u25A0</font>`;
 			}
 			case "broadcast":
 				return "@room";
@@ -376,44 +404,49 @@ export class SlackMessageParser {
 	public async FormatText(
 		opts: ISlackMessageParserOpts,
 		text: string,
-	): Promise<SlackMessageParserResult> {
+	): Promise<IMatrixMessage> {
 		return await this.FormatMessage(opts, { text });
 	}
 
 	public async FormatMessage(
 		opts: ISlackMessageParserOpts,
 		event: ISlackMessage,
-	): Promise<SlackMessageParserResult> {
+	): Promise<IMatrixMessage> {
 		const markdownPlain = async (str) => await this.markdownParser.parseMarkdown(opts, { slackOnly: true }, str);
 		const markdownHtml = async (str) => await this.markdownParser.parseMarkdown(opts, { slackOnly: false }, str);
-		const result = new SlackMessageParserResult();
+		const result = {
+			msgtype: "m.text",
+			body: "",
+			format: "org.matrix.custom.html",
+			formatted_body: "",
+		} as IMatrixMessage;
 		const text = unescapeHtml(event.text);
 		result.body = await markdownPlain(text);
 		if (event.blocks && event.blocks.length > 0) {
-			result.formattedBody = await this.blocksParser.parseBlocks(opts, event.blocks);
+			result.formatted_body = await this.blocksParser.parseBlocks(opts, event.blocks);
 		} else {
-			result.formattedBody = await markdownHtml(text);
+			result.formatted_body = await markdownHtml(text);
 		}
 		if (event.attachments && event.attachments.length > 0) {
 			if (result.body !== "") {
 				result.body += "\n";
-				result.formattedBody += "<br>";
+				result.formatted_body += "<br>";
 			}
 			for (const attachment of event.attachments) {
 				if (result.body !== "") {
 					result.body += "---------------------\n";
-					result.formattedBody += "<hr>";
+					result.formatted_body += "<hr>";
 				}
-				result.formattedBody += "<p>";
+				result.formatted_body += "<p>";
 				if (attachment.pretext) {
 					result.body += (await markdownPlain(attachment.pretext)) + "\n";
-					result.formattedBody += (await markdownHtml(attachment.pretext)) + "<br>";
+					result.formatted_body += (await markdownHtml(attachment.pretext)) + "<br>";
 				}
 				if (attachment.author_name) {
 					if (attachment.author_icon) {
 						const mxc = await opts.callbacks.urlToMxc(attachment.author_icon);
 						if (mxc) {
-							result.formattedBody += `<img height="${EMOJI_SIZE}" src="${mxc}" /> `;
+							result.formatted_body += `<img height="${EMOJI_SIZE}" src="${mxc}" /> `;
 						}
 					}
 					let author_name = attachment.author_name;
@@ -429,10 +462,10 @@ export class SlackMessageParser {
 						result.body += `[${author_name}](${author_link})\n`;
 						const name = escapeHtml(author_name);
 						const link = escapeHtml(author_link);
-						result.formattedBody += `<a href="${link}">${name}</a><br>`;
+						result.formatted_body += `<a href="${link}">${name}</a><br>`;
 					} else {
 						result.body += author_name + "\n";
-						result.formattedBody += escapeHtml(author_name) + "<br>";
+						result.formatted_body += escapeHtml(author_name) + "<br>";
 					}
 				}
 				if (attachment.title) {
@@ -440,37 +473,37 @@ export class SlackMessageParser {
 						result.body += `## [${attachment.title}](${attachment.title_link})\n`;
 						const title = escapeHtml(attachment.title);
 						const link = escapeHtml(attachment.title_link);
-						result.formattedBody += `<h2><a href="${link}">${title}</a></h2>`;
+						result.formatted_body += `<h2><a href="${link}">${title}</a></h2>`;
 					} else {
 						result.body += `## ${attachment.title}\n`;
-						result.formattedBody += `<h2>${escapeHtml(attachment.title)}</h2>`;
+						result.formatted_body += `<h2>${escapeHtml(attachment.title)}</h2>`;
 					}
 				}
 				if (attachment.text) {
 					result.body += (await markdownPlain(attachment.text)) + "\n";
-					result.formattedBody += (await markdownHtml(attachment.text)) + "<br>";
+					result.formatted_body += (await markdownHtml(attachment.text)) + "<br>";
 				}
 				if (attachment.fields && attachment.fields.length > 0) {
-					result.formattedBody += "<table><tr>";
+					result.formatted_body += "<table><tr>";
 					let i = 0;
 					for (const field of attachment.fields) {
 						result.body += `*${await markdownPlain(field.title)}*\n`;
 						result.body += `${await markdownPlain(field.value)}\n`;;
 						const title = await markdownHtml(field.title);
 						const value = await markdownHtml(field.value);
-						result.formattedBody += `<td><strong>${title}</strong><br>${value}</td>`;
+						result.formatted_body += `<td><strong>${title}</strong><br>${value}</td>`;
 						// tslint:disable-next-line no-magic-numbers
 						if ((i % 2) && i < attachment.fields.length - 1) {
-							result.formattedBody += "</tr><tr>";
+							result.formatted_body += "</tr><tr>";
 						}
 						i++;
 					}
-					result.formattedBody += "</tr></table>";
+					result.formatted_body += "</tr></table>";
 				}
 				if (attachment.image_url) {
 					result.body += `Image: ${attachment.image_url}\n`;
 					const url = escapeHtml(attachment.image_url);
-					result.formattedBody += `Image: <a href="${url}">${url}</a><br>`;
+					result.formatted_body += `Image: <a href="${url}">${url}</a><br>`;
 				}
 				const footerParts: string[] = [];
 				const footerPartsHtml: string[] = [];
@@ -486,9 +519,9 @@ export class SlackMessageParser {
 				}
 				if (footerParts.length > 0) {
 					result.body += footerParts.join(" | ") + "\n";
-					result.formattedBody += `<sup>${footerParts.join(" | ")}</sup><br>`;
+					result.formatted_body += `<sup>${footerParts.join(" | ")}</sup><br>`;
 				}
-				result.formattedBody += "</p>";
+				result.formatted_body += "</p>";
 			}
 		}
 		return result;
