@@ -24,6 +24,7 @@ import * as unescapeHtml from "unescape-html";
 import * as emoji from "node-emoji";
 import { SectionBlock, PlainTextElement, MrkdwnElement, ImageBlock, ContextBlock, ImageElement } from "@slack/types";
 import * as markdown from "slack-markdown";
+import * as dateFormat from "dateformat";
 
 const MATRIX_TO_LINK = "https://matrix.to/#/";
 const EMOJI_SIZE = 32;
@@ -359,8 +360,6 @@ export class SlackBlocksParser {
 				return retStr;
 			}
 			default:
-				console.log("================");
-				console.log(block);
 				return `Unsupported block of type ${block.type}`;
 		}
 	}
@@ -396,11 +395,16 @@ export class SlackMessageParser {
 			result.formattedBody = await markdownHtml(text);
 		}
 		if (event.attachments && event.attachments.length > 0) {
-			result.body += "\n\n";
-			result.formattedBody += "<br><br>";
+			if (result.body !== "") {
+				result.body += "\n";
+				result.formattedBody += "<br>";
+			}
 			for (const attachment of event.attachments) {
-				result.body += "---------------------\n";
-				result.formattedBody += "<hr><p>";
+				if (result.body !== "") {
+					result.body += "---------------------\n";
+					result.formattedBody += "<hr>";
+				}
+				result.formattedBody += "<p>";
 				if (attachment.pretext) {
 					result.body += (await markdownPlain(attachment.pretext)) + "\n";
 					result.formattedBody += (await markdownHtml(attachment.pretext)) + "<br>";
@@ -412,14 +416,23 @@ export class SlackMessageParser {
 							result.formattedBody += `<img height="${EMOJI_SIZE}" src="${mxc}" /> `;
 						}
 					}
-					if (attachment.author_link) {
-						result.body += `[${attachment.author_name}](${attachment.author_link})\n`;
-						const name = escapeHtml(attachment.author_name);
-						const link = escapeHtml(attachment.author_link);
+					let author_name = attachment.author_name;
+					let author_link = attachment.author_link;
+					if (attachment.author_id) {
+						const author = await opts.callbacks.getUser(attachment.author_id, author_name);
+						if (author) {
+							author_name = author.name;
+							author_link = MATRIX_TO_LINK + author.mxid;
+						}
+					}
+					if (author_link) {
+						result.body += `[${author_name}](${author_link})\n`;
+						const name = escapeHtml(author_name);
+						const link = escapeHtml(author_link);
 						result.formattedBody += `<a href="${link}">${name}</a><br>`;
 					} else {
-						result.body += attachment.author_name + "\n";
-						result.formattedBody += escapeHtml(attachment.author_name) + "<br>";
+						result.body += author_name + "\n";
+						result.formattedBody += escapeHtml(author_name) + "<br>";
 					}
 				}
 				if (attachment.title) {
@@ -459,9 +472,21 @@ export class SlackMessageParser {
 					const url = escapeHtml(attachment.image_url);
 					result.formattedBody += `Image: <a href="${url}">${url}</a><br>`;
 				}
+				const footerParts: string[] = [];
+				const footerPartsHtml: string[] = [];
 				if (attachment.footer) {
-					result.body += (await markdownPlain(attachment.footer)) + "\n";
-					result.formattedBody += (await markdownHtml(attachment.footer)) + "<br>";
+					footerParts.push(await markdownPlain(attachment.footer));
+					footerPartsHtml.push(await markdownHtml(attachment.footer));
+				}
+				if (attachment.ts) {
+					const date = new Date(parseFloat(attachment.ts)*1000);
+					const dateStr = dateFormat(date, "dS mmm yyyy 'at' H:MM Z");
+					footerParts.push(dateStr);
+					footerPartsHtml.push(escapeHtml(dateStr));
+				}
+				if (footerParts.length > 0) {
+					result.body += footerParts.join(" | ") + "\n";
+					result.formattedBody += `<sup>${footerParts.join(" | ")}</sup><br>`;
 				}
 				result.formattedBody += "</p>";
 			}

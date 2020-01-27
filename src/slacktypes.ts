@@ -93,10 +93,14 @@ export type AllBlocks = KnownBlock | ISlackBlockRichText | ISlackRichTextSection
 	| ISlackRichTextPre | ISlackRichTextQuote | ISlackRichTextList | ISlackBlockUser | ISlackBlockChannel
 	| ISlackBlockBroadcast | ISlackBlockLink;
 
+export interface ISlackMessageAttachment extends MessageAttachment {
+	author_id?: string;
+}
+
 export interface ISlackMessage {
 	text: string;
 	blocks?: AllBlocks[];
-	attachments?: MessageAttachment[];
+	attachments?: ISlackMessageAttachment[];
 	thread_ts?: string;
 	mrkdwn?: boolean;
 }
