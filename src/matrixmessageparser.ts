@@ -60,13 +60,14 @@ export class MatrixMessageParser {
 		if (msg.includes("@room") && await opts.callbacks.canNotifyRoom()) {
 			msg = msg.replace(/@room/g, "<!channel>");
 		}
-		const escapeChars = ["\\", "*", "_", "~", "`"];
+		const escapeChars = ["*", "_", "~", "`"];
 		msg = msg.split(" ").map((s) => {
 			if (s.match(/^https?:\/\//)) {
 				return s;
 			}
+			// slack doesn't do \ escaping so instead we surround with \ufff1 instead
 			escapeChars.forEach((char) => {
-				s = s.replace(new RegExp("\\" + char, "g"), "\\" + char);
+				s = s.replace(new RegExp("\\" + char, "g"), `\ufff1${char}\ufff1`);
 			});
 			return s;
 		}).join(" ");
