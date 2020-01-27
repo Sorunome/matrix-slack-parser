@@ -90,8 +90,8 @@ export class MatrixMessageParser {
 			}
 			// slack doesn't do \ escaping so instead we surround with \ufff1 instead
 			escapeChars.forEach((char) => {
-				s = s.replace(new RegExp("\\" + char, "g"), `xx${char}xx`);
-			});//`\ufff1${char}\ufff1`
+				s = s.replace(new RegExp("\\" + char, "g"), `\ufff1${char}\ufff1`);
+			});
 			return s;
 		}).join(" ");
 		// Check the Matrix permissions to see if this user has the required
@@ -319,7 +319,7 @@ export class MatrixMessageParser {
 		const entries = await this.arrayChildNodes(opts, node, ["li"]);
 		opts.listDepth!--;
 		const bulletPoint = this.listBulletPoints[opts.listDepth! % this.listBulletPoints.length];
-		
+
 		const blocks: AllBlocks[] = [];
 		let msg = entries.map((s) => {
 			blocks.push({
@@ -332,10 +332,10 @@ export class MatrixMessageParser {
 		if (opts.listDepth! === 0) {
 			msg = `\n${msg}\n\n`;
 		}
-		
+
 		return {
 			text: msg,
-			blocks, 
+			blocks,
 		} as IRes;
 	}
 
@@ -364,7 +364,7 @@ export class MatrixMessageParser {
 		}
 		return {
 			text: msg,
-			blocks, 
+			blocks,
 		} as IRes;
 	}
 
@@ -406,7 +406,7 @@ export class MatrixMessageParser {
 			}
 			return s;
 		};
-		let retBlocks: AllBlocks[] = [];
+		const retBlocks: AllBlocks[] = [];
 		let blocksStack: ISlackBlockText[] = [];
 		let curStyleStr = "invalid";
 		for (const block of blocks) {
@@ -463,7 +463,7 @@ export class MatrixMessageParser {
 				return blocks;
 			}
 		}
-		let retBlocks: AllBlocks[] = [];
+		const retBlocks: AllBlocks[] = [];
 		let blocksStack: AllBlocks[] = [];
 		for (const block of blocks) {
 			if (richTextSections.includes(block.type)) {
