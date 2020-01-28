@@ -52,7 +52,7 @@ const opts = {
         canNotifyRoom: async () => false,
         getUserId: async (mxid: string) => null,
         getChannelId: async (mxid: string) => null,
-        mxcUrlToHttp: async (mxc: string) => "http://example.com",
+        mxcUrlToHttp: (mxc: string) => "http://example.com",
     },
 } as IMatrixMessageParserOpts;
 
@@ -78,7 +78,7 @@ All options of `IMatrixMessageParserOpts`:
       given an mxid, or null
     * `getChannelId`: `async (mxid: string) => Promise<string | null>`, return the slack channel
       ID given an mxid, or null
-    * `mxcUrlToHttp`: `async (mxc: string) => Promise<string>`, resolve an mxc uri to a publicly
+    * `mxcUrlToHttp`: `(mxc: string) => string`, resolve an mxc uri to a publicly
       available http url.
 
 Returned is a slack message object. If you only want to send the markdown-formatted message, use `result.text`.
