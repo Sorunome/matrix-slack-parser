@@ -618,7 +618,8 @@ export class MatrixMessageParser {
 					return {
 						text: "\n----------\n",
 						blocks: [{
-							type: "divider",
+							type: "text",
+							text: "\n----------\n",
 						}],
 					} as IRes;
 				case "h1":

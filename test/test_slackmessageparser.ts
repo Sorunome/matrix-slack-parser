@@ -456,6 +456,52 @@ describe("SlackBlocksParser", () => {
 			const ret = await blocksParser["parseBlock"](opts, block);
 			expect(ret).to.equal("&lt;@blah&gt;");
 		});
+		it("should parse usergroup blocks", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "usergroup",
+				usergroup_id: "blah",
+			} as any;
+			const opts = { callbacks: {
+				getUsergroup: async (id, name) => {
+					return {
+						mxid: `+_slack_${id}:example.org`,
+						name: "Usergroup" + id,
+					};
+				},
+			}} as any;
+			const ret = await blocksParser["parseBlock"](opts, block);
+			expect(ret).to.equal("<a href=\"https://matrix.to/#/+_slack_blah:example.org\">Usergroupblah</a>");
+		});
+		it("should fall usergroup blocks back if user not found", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "usergroup",
+				usergroup_id: "blah",
+			} as any;
+			const opts = { callbacks: {
+				getUsergroup: async (id, name) => null,
+			}} as any;
+			const ret = await blocksParser["parseBlock"](opts, block);
+			expect(ret).to.equal("&lt;!subteam^blah&gt;");
+		});
+		it("should handle usergroup blocks without an associated mxid", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "usergroup",
+				usergroup_id: "blah",
+			} as any;
+			const opts = { callbacks: {
+				getUsergroup: async (id, name) => {
+					return {
+						mxid: "",
+						name: "Usergroup" + id,
+					};
+				},
+			}} as any;
+			const ret = await blocksParser["parseBlock"](opts, block);
+			expect(ret).to.equal("Usergroupblah");
+		});
 		it("should parse channel blocks", async () => {
 			const blocksParser = new SlackBlocksParser(markdownParser);
 			const block = {
@@ -484,6 +530,53 @@ describe("SlackBlocksParser", () => {
 			}} as any;
 			const ret = await blocksParser["parseBlock"](opts, block);
 			expect(ret).to.equal("&lt;#blah&gt;");
+		});
+		it("should parse team blocks", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "team",
+				team_id: "blah",
+			} as any;
+			const opts = { callbacks: {
+				getTeam: async (id, name) => {
+					return {
+						mxid: `+_slack_${id}:example.org`,
+						name: "Team" + id,
+					};
+				},
+			}} as any;
+			const ret = await blocksParser["parseBlock"](opts, block);
+			expect(ret).to.equal("<a href=\"https://matrix.to/#/+_slack_blah:example.org\">Teamblah</a>");
+		});
+		it("should fall team blocks back if user not found", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "team",
+				team_id: "blah",
+			} as any;
+			const opts = { callbacks: {
+				getTeam: async (id, name) => null,
+			}} as any;
+			const ret = await blocksParser["parseBlock"](opts, block);
+			expect(ret).to.equal("&lt;!team^blah&gt;");
+		});
+		it("should parse date pills", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "date",
+				fallback: "Some Date",
+			} as any;
+			const ret = await blocksParser["parseBlock"]({} as any, block);
+			expect(ret).to.equal("Some Date");
+		});
+		it("should parse color pills", async () => {
+			const blocksParser = new SlackBlocksParser(markdownParser);
+			const block = {
+				type: "color",
+				value: "#FF0000",
+			} as any;
+			const ret = await blocksParser["parseBlock"]({} as any, block);
+			expect(ret).to.equal("#FF0000<font color=\"#FF0000\">\u25a0</font>");
 		});
 		it("should parse broadcast blocks", async () => {
 			const blocksParser = new SlackBlocksParser(markdownParser);
