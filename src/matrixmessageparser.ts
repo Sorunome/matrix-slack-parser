@@ -241,13 +241,16 @@ export class MatrixMessageParser {
 		const name = await this.escapeSlack(opts, attrs.alt || attrs.title || "");
 		const url = opts.callbacks.mxcUrlToHttp(attrs.src || "");
 		if (attrs.src) {
+			const linkBlock = {
+				type: "link",
+				url,
+			} as ISlackBlockLink;
+			if (name.text) {
+				linkBlock.text = name.text;
+			}
 			return {
-				text: `<${url}|${name}>`,
-				blocks: [{
-					type: "link",
-					url,
-					text: name.text,
-				}],
+				text: name.text ? `<${url}|${name.text}>` : `<${url}>`,
+				blocks: [linkBlock],
 			} as IRes;
 		}
 		return name;
@@ -482,12 +485,14 @@ export class MatrixMessageParser {
 		if (blocksStack.length > 0) {
 			const text = blocksStack.map((b) => b.text).join("");
 			const style = blocksStack[0].style;
-			retBlocks.push({
+			const newBlock = {
 				type: "text",
 				text,
-				style,
-			});
-			blocksStack = [];
+			} as ISlackBlockText;
+			if (style) {
+				newBlock.style = style;
+			}
+			retBlocks.push(newBlock);
 		}
 		return retBlocks;
 	}
@@ -637,7 +642,7 @@ export class MatrixMessageParser {
 						blocks: [
 							{
 								type: "text",
-								text: `*${"#".repeat(level)} `,
+								text: `${"#".repeat(level)} `,
 								style: { bold: true },
 							},
 							...res.blocks,
