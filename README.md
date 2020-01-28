@@ -39,7 +39,7 @@ All options of `ISlackMessageParserOpts`:
 
 All properties of `ISlackMessageParserEntity`:
  * `name`: `string`, the name of the entity
- * `mxid`: `string`, the resulting matrix ID of teh entity
+ * `mxid`: `string`, the resulting matrix ID of the entity
 
 ## MatrixMessageParser
 Example code:
