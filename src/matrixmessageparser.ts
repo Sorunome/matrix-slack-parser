@@ -320,23 +320,44 @@ export class MatrixMessageParser {
 		opts.listDepth!--;
 		const bulletPoint = this.listBulletPoints[opts.listDepth! % this.listBulletPoints.length];
 
-		const blocks: AllBlocks[] = [];
+		let blocks: AllBlocks[] = [];
 		let msg = entries.map((s) => {
-			blocks.push({
-				type: "rich_text_section",
-				elements: s.blocks,
-			} as ISlackRichTextSection);
+			if (opts.listDepth! === 0) {
+				blocks = [...blocks, ...this.cleanupBlocks(s.blocks)];
+			} else {
+				blocks = [
+					...blocks,
+					{
+						type: "text",
+						text: `${"    ".repeat(opts.listDepth!)}${bulletPoint} `,
+					},
+					...s.blocks,
+					{
+						type: "text",
+						text: "\n",
+					},
+				];
+			}
 			return `${"    ".repeat(opts.listDepth!)}${bulletPoint} ${s.text}`;
 		}).join("\n");
 
 		if (opts.listDepth! === 0) {
 			msg = `\n${msg}\n\n`;
+			return {
+				text: msg,
+				blocks: [{
+					type: "rich_text_list",
+					elements: blocks,
+					style: "bullet",
+					indent: opts.listDepth,
+				}],
+			} as IRes;
+		} else {
+			return {
+				text: msg,
+				blocks,
+			};
 		}
-
-		return {
-			text: msg,
-			blocks,
-		} as IRes;
 	}
 
 	private async parseOlContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<IRes> {
@@ -345,27 +366,50 @@ export class MatrixMessageParser {
 		opts.listDepth!--;
 		let entry = 0;
 		const attrs = node.attributes;
+		let startEntry = 0;
 		if (attrs.start && attrs.start.match(/^[0-9]+$/)) {
-			entry = parseInt(attrs.start, 10) - 1;
+			startEntry = entry = parseInt(attrs.start, 10) - 1;
 		}
 
-		const blocks: AllBlocks[] = [];
+		let blocks: AllBlocks[] = [];
 		let msg = entries.map((s) => {
-			blocks.push({
-				type: "rich_text_section",
-				elements: s.blocks,
-			} as ISlackRichTextSection);
 			entry++;
+			if (opts.listDepth! === 0) {
+				blocks = [...blocks, ...this.cleanupBlocks(s.blocks)];
+			} else {
+				blocks = [
+					...blocks,
+					{
+						type: "text",
+						text: `${"    ".repeat(opts.listDepth!)}${entry}. `,
+					},
+					...s.blocks,
+					{
+						type: "text",
+						text: "\n",
+					},
+				];
+			}
 			return `${"    ".repeat(opts.listDepth!)}${entry}. ${s.text}`;
 		}).join("\n");
 
 		if (opts.listDepth! === 0) {
 			msg = `\n${msg}\n\n`;
+			return {
+				text: msg,
+				blocks: [{
+					type: "rich_text_list",
+					elements: blocks,
+					style: "ordered",
+					indent: opts.listDepth,
+				}],
+			} as IRes;
+		} else {
+			return {
+				text: msg,
+				blocks,
+			};
 		}
-		return {
-			text: msg,
-			blocks,
-		} as IRes;
 	}
 
 	private async arrayChildNodes(
