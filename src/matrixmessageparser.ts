@@ -149,7 +149,7 @@ export class MatrixMessageParser {
 		text = text.substr(match[0].length);
 		// remove </code> closing tag
 		text = text.replace(/<\/code>$/i, "");
-			text = text.trim();
+		text = text.trim();
 		// slack doesn't support code language
 		return {
 			text: `\`\`\`${text}\`\`\`\n`,
