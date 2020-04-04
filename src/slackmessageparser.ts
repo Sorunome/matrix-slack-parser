@@ -473,10 +473,10 @@ export class SlackMessageParser {
 						result.body += `## [${attachment.title}](${attachment.title_link})\n`;
 						const title = escapeHtml(attachment.title);
 						const link = escapeHtml(attachment.title_link);
-						result.formatted_body += `<h2><a href="${link}">${title}</a></h2>`;
+						result.formatted_body += `<strong><a href="${link}">${title}</a></strong>`;
 					} else {
 						result.body += `## ${attachment.title}\n`;
-						result.formatted_body += `<h2>${escapeHtml(attachment.title)}</h2>`;
+						result.formatted_body += `<strong>${escapeHtml(attachment.title)}</strong>`;
 					}
 				}
 				if (attachment.text) {
