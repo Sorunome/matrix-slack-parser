@@ -112,6 +112,29 @@ describe("MatrixMessageParser", () => {
 				}],
 			}]);
 		});
+		it("should linkify links", async () => {
+			const event = {
+				body: "Hey, did you hear of https://example.org",
+			} as any;
+			const ret = await parser.FormatMessage({} as any, event);
+			expect(ret.text).to.equal("Hey, did you hear of https://example.org");
+			expect(ret.blocks).eql([{
+				type: "rich_text",
+				elements: [{
+					type: "rich_text_section",
+					elements: [
+						{
+							type: "text",
+							text: "Hey, did you hear of ",
+						},
+						{
+							type: "link",
+							url: "https://example.org",
+						},
+					],
+				}],
+			}]);
+		});
 	});
 	describe("blocks", () => {
 		it("should handle code blocks", async () => {

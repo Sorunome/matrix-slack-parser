@@ -82,50 +82,106 @@ export class MatrixMessageParser {
 	}
 
 	private async escapeSlack(opts: IMatrixMessageParserOpts, msg: string): Promise<IRes> {
-		const escapeChars = ["*", "_", "~", "`"];
 		const plainMsg = msg;
-		msg = msg.split(" ").map((s) => {
-			if (s.match(/^https?:\/\//)) {
-				return s;
+		const canHighlight = plainMsg.includes("@room") && await opts.callbacks.canNotifyRoom();
+		// first we want to construct the "msg", which is the text representative
+		const escapeChars = ["*", "_", "~", "`"];
+		const escapeSlackInternal = (s: string): string => {
+			if (s.includes("@room") && canHighlight) {
+				s = s.replace("@room", "<!channel>");
 			}
-			// slack doesn't do \ escaping so instead we surround with \ufff1 instead
+			const match = s.match(/\bhttps?:\/\//);
+			if (match) {
+				return escapeSlackInternal(s.substring(0, match.index)) + s.substring(match.index as number);
+			}
 			escapeChars.forEach((char) => {
 				s = s.replace(new RegExp("\\" + char, "g"), `\ufff1${char}\ufff1`);
 			});
 			return s;
-		}).join(" ");
-		// Check the Matrix permissions to see if this user has the required
-		// power level to notify with @room; if so, replace it with @here.
-		// TODO: also split emoji
-		let plainMsgParts = [plainMsg];
-		if (msg.includes("@room") && await opts.callbacks.canNotifyRoom()) {
-			plainMsgParts = plainMsg.split("@room");
-			msg = msg.replace(/@room/g, "<!channel>");
 		}
-		const blocks: AllBlocks[] = [];
-		for (const part of plainMsgParts) {
-			const block = {
-				type: "text",
-				text: part,
-			} as ISlackBlockText;
-			for (const style of ["bold", "italic", "strike", "code"]) {
-				if (opts.style![style] > 0) {
-					if (!block.style) {
-						block.style = {};
-					}
-					block.style[style] = true;
+		const parts: string[] = msg.split(/\s/).map(escapeSlackInternal);
+		const whitespace = msg.replace(/\S/g, "");
+		msg = parts[0];
+		for (let i = 0; i < whitespace.length; i++) {
+			msg += whitespace[i] + parts[i + 1];
+		}
+		// next we want to construct the blocks
+		let style: any | undefined; // tslint:disable-line no-any
+		for (const s of ["bold", "italic", "strike", "code"]) {
+			if (opts.style![s] > 0) {
+				if (!style) {
+					style = {};
 				}
+				style[s] = true;
 			}
-			blocks.push(block);
-			blocks.push({
-				type: "broadcast",
-				range: "channel",
-			} as ISlackBlockBroadcast);
 		}
-		blocks.pop(); // we added one too many broadcast blocks
+		const escapeSlackBlockInternal = (s: string): AllBlocks[] | AllBlocks => {
+			const matchRoom = s.match(/(.*)@room(.*)/);
+			if (matchRoom && canHighlight) {
+				return [
+					{
+						type: "text",
+						text: matchRoom[1],
+						style,
+					},
+					{
+						type: "broadcast",
+						range: "channel",
+					},
+					{
+						type: "text",
+						text: matchRoom[2],
+						style,
+					},
+				];
+			}
+			const matchUrl = s.match(/\bhttps?:\/\//);
+			if (matchUrl) {
+				return [
+					{
+						type: "text",
+						text: s.substring(0, matchUrl.index),
+						style,
+					},
+					{
+						type: "link",
+						url: s.substring(matchUrl.index as number),
+					}
+				];
+			}
+			return {
+				type: "text",
+				text: s,
+				style,
+			};
+		};
+		const blockParts: (AllBlocks | AllBlocks[])[] = plainMsg.split(/\s/).map(escapeSlackBlockInternal); // we may not flatten *yet*, as we still need to insert the whitespace
+		const blockWhitespace = plainMsg.replace(/\S/g, "");
+		const blocks: AllBlocks[] = [];
+		if (Array.isArray(blockParts[0])) {
+			for (const b of blockParts[0]) {
+				blocks.push(b);
+			}
+		} else {
+			blocks.push(blockParts[0]);
+		}
+		for (let i = 0; i < blockWhitespace.length; i++) {
+			blocks.push({
+				type: "text",
+				text: blockWhitespace[i],
+			});
+			const b = blockParts[i + 1];
+			if (Array.isArray(b)) {
+				for (const bb of b) {
+					blocks.push(bb);
+				}
+			} else {
+				blocks.push(b);
+			}
+		}
 		return {
 			text: msg,
-			blocks,
+			blocks: blocks,
 		};
 	}
 
