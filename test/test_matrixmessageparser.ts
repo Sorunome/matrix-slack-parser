@@ -135,6 +135,25 @@ describe("MatrixMessageParser", () => {
 				}],
 			}]);
 		});
+		it("should handle links-only messages", async () => {
+			const event = {
+				body: "https://example.org",
+			} as any;
+			const ret = await parser.FormatMessage({} as any, event);
+			expect(ret.text).to.equal("https://example.org");
+			expect(ret.blocks).eql([{
+				type: "rich_text",
+				elements: [{
+					type: "rich_text_section",
+					elements: [
+						{
+							type: "link",
+							url: "https://example.org",
+						},
+					],
+				}],
+			}]);
+		});
 	});
 	describe("blocks", () => {
 		it("should handle code blocks", async () => {

@@ -118,10 +118,12 @@ export class MatrixMessageParser {
 		const escapeSlackBlockInternal = (s: string): AllBlocks[] | AllBlocks => {
 			const matchRoom = s.match(/(.*)@room(.*)/);
 			if (matchRoom && canHighlight) {
+				const MATCH_BEFORE = 1;
+				const MATCH_AFTER = 2;
 				return [
 					{
 						type: "text",
-						text: matchRoom[1],
+						text: matchRoom[MATCH_BEFORE],
 						style,
 					},
 					{
@@ -130,7 +132,7 @@ export class MatrixMessageParser {
 					},
 					{
 						type: "text",
-						text: matchRoom[2],
+						text: matchRoom[MATCH_AFTER],
 						style,
 					},
 				];
@@ -181,7 +183,7 @@ export class MatrixMessageParser {
 		}
 		return {
 			text: msg,
-			blocks: blocks,
+			blocks,
 		};
 	}
 
@@ -517,15 +519,17 @@ export class MatrixMessageParser {
 				(block.type === "text" && curStyleStr !== getStyleStr((block as ISlackBlockText).style))) {
 				if (blocksStack.length > 0) {
 					const text = blocksStack.map((b) => b.text).join("");
-					const style = blocksStack[0].style;
-					const newBlock = {
-						type: "text",
-						text,
-					} as ISlackBlockText;
-					if (style) {
-						newBlock.style = style;
+					if (text) {
+						const style = blocksStack[0].style;
+						const newBlock = {
+							type: "text",
+							text,
+						} as ISlackBlockText;
+						if (style) {
+							newBlock.style = style;
+						}
+						retBlocks.push(newBlock);
 					}
-					retBlocks.push(newBlock);
 					blocksStack = [];
 				}
 				if (block.type === "text") {
@@ -540,15 +544,17 @@ export class MatrixMessageParser {
 		}
 		if (blocksStack.length > 0) {
 			const text = blocksStack.map((b) => b.text).join("");
-			const style = blocksStack[0].style;
-			const newBlock = {
-				type: "text",
-				text,
-			} as ISlackBlockText;
-			if (style) {
-				newBlock.style = style;
+			if (text) {
+				const style = blocksStack[0].style;
+				const newBlock = {
+					type: "text",
+					text,
+				} as ISlackBlockText;
+				if (style) {
+					newBlock.style = style;
+				}
+				retBlocks.push(newBlock);
 			}
-			retBlocks.push(newBlock);
 		}
 		return retBlocks;
 	}
