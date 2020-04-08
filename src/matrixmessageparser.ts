@@ -171,6 +171,7 @@ export class MatrixMessageParser {
 			blocks.push({
 				type: "text",
 				text: blockWhitespace[i],
+				style,
 			});
 			const b = blockParts[i + 1];
 			if (Array.isArray(b)) {
