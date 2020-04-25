@@ -1,6 +1,6 @@
 {
   "name": "matrix-slack-parser",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A parser for matrix and discord messages to each others format",
   "main": "./lib/src/index.js",
   "scripts": {
@@ -30,7 +30,7 @@
     "escape-html": "^1.0.3",
     "node-emoji": "^1.10.0",
     "node-html-parser": "^1.2.14",
-    "slack-markdown": "0.0.3",
+    "slack-markdown": "0.0.4",
     "unescape-html": "^1.1.0"
   },
   "devDependencies": {
