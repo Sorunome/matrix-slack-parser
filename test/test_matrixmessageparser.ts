@@ -154,6 +154,44 @@ describe("MatrixMessageParser", () => {
 				}],
 			}]);
 		});
+		it("should correctly handle html escaping", async () => {
+			const event = {
+				body: "&lt;",
+			} as any;
+			const ret = await parser.FormatMessage({} as any, event);
+			expect(ret.text).to.equal("&lt;");
+			expect(ret.blocks).eql([{
+				type: "rich_text",
+				elements: [{
+					type: "rich_text_section",
+					elements: [
+						{
+							type: "text",
+							text: "&lt;",
+						},
+					],
+				}],
+			}]);
+		});
+		it("should correctly handle html in formatted body", async () => {
+			const event = {
+				formatted_body: "&amp;lt;"
+			} as any;
+			const ret = await parser.FormatMessage({} as any, event);
+			expect(ret.text).to.equal("&lt;");
+			expect(ret.blocks).eql([{
+				type: "rich_text",
+				elements: [{
+					type: "rich_text_section",
+					elements: [
+						{
+							type: "text",
+							text: "&lt;",
+						},
+					],
+				}],
+			}]);
+		});
 	});
 	describe("blocks", () => {
 		it("should handle code blocks", async () => {

@@ -19,6 +19,8 @@ import {
 	ISlackMessage, AllBlocks, ISlackBlockText, ISlackBlockBroadcast, ISlackRichTextQuote, ISlackRichTextPre,
 	ISlackBlockLink, ISlackBlockUser, ISlackBlockChannel, ISlackRichTextSection,
 } from "./slacktypes";
+import * as escapeHtml from "escape-html";
+import * as unescapeHtml from "unescape-html";
 
 const MATRIX_TO_LINK = "https://matrix.to/#/";
 
@@ -71,7 +73,7 @@ export class MatrixMessageParser {
 			} as any); // tslint:disable-line no-any
 			result = await this.walkNode(opts, parsed);
 		} else {
-			result = await this.escapeSlack(opts, eventContent.body);
+			result = await this.escapeSlack(opts, escapeHtml(eventContent.body));
 		}
 		result.text = result.text.replace(/\s*$/, ""); // trim off whitespace at end
 		result.blocks = [{
@@ -82,6 +84,7 @@ export class MatrixMessageParser {
 	}
 
 	private async escapeSlack(opts: IMatrixMessageParserOpts, msg: string): Promise<IRes> {
+		msg = unescapeHtml(msg);
 		const plainMsg = msg;
 		const canHighlight = plainMsg.includes("@room") && await opts.callbacks.canNotifyRoom();
 		// first we want to construct the "msg", which is the text representative
