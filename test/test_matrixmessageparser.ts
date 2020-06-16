@@ -194,6 +194,22 @@ describe("MatrixMessageParser", () => {
 		});
 	});
 	describe("blocks", () => {
+		it("should handle p tags", async () => {
+			const event = {
+				formatted_body: "<p>a</p><p>b</p>",
+			} as any;
+			const ret = await parser.FormatMessage({} as any, event);
+			expect(ret.text).to.equal("a\n\nb");
+			expect(ret.blocks).eql([{
+				type: "rich_text",
+				elements: [{
+					type: "rich_text_section",
+					elements: [
+						{ type: "text", text: "a\n\nb" },
+					],
+				}],
+			}]);
+		});
 		it("should handle code blocks", async () => {
 			const event = {
 				formatted_body: "<pre><code>foxies</code></pre>",

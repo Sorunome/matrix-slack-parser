@@ -608,10 +608,21 @@ export class MatrixMessageParser {
 			text: "",
 			blocks: [],
 		} as IRes;
+		let lastTag = "";
 		await Util.AsyncForEach(node.childNodes, async (child) => {
+			const thisTag = child.nodeType === Parser.NodeType.ELEMENT_NODE
+				? (child as Parser.HTMLElement).tagName : "";
+			if (thisTag === "p" && lastTag === "p") {
+				reply.text += "\n\n";
+				reply.blocks.push({
+					type: "text",
+					text: "\n\n",
+				});
+			}
 			const ret = await this.walkNode(opts, child);
 			reply.text += ret.text;
 			reply.blocks = [...reply.blocks, ...ret.blocks];
+			lastTag = thisTag;
 		});
 		reply.blocks = this.cleanupBlocks(reply.blocks, false);
 		return reply;
@@ -646,7 +657,9 @@ export class MatrixMessageParser {
 					res.text = `*${res.text}*`;
 					return res;
 				}
-				case "del": {
+				case "del":
+				case "strike":
+				case "s": {
 					opts.style!.strike++;
 					const res = await this.walkChildNodes(opts, nodeHtml);
 					opts.style!.strike--;
