@@ -767,7 +767,7 @@ describe("SlackMessageParser", () => {
 			} as any;
 			const ret = await messageParser.FormatMessage({} as any, event);
 			expect(ret.body).to.equal("## Foxies!\n");
-			expect(ret.formatted_body).to.equal("<p><strong>Foxies!</strong></p>");
+			expect(ret.formatted_body).to.equal("<p><strong>Foxies!</strong><br></p>");
 		});
 		it("should handle attachments with a title link", async () => {
 			const event = {
@@ -779,7 +779,7 @@ describe("SlackMessageParser", () => {
 			} as any;
 			const ret = await messageParser.FormatMessage({} as any, event);
 			expect(ret.body).to.equal("## [Foxies!](https://example.org)\n");
-			expect(ret.formatted_body).to.equal("<p><strong><a href=\"https://example.org\">Foxies!</a></strong></p>");
+			expect(ret.formatted_body).to.equal("<p><strong><a href=\"https://example.org\">Foxies!</a></strong><br></p>");
 		});
 		it("should handle attachments with text", async () => {
 			const event = {
@@ -791,6 +791,18 @@ describe("SlackMessageParser", () => {
 			const ret = await messageParser.FormatMessage({} as any, event);
 			expect(ret.body).to.equal("Foxies are _awesome_!\n");
 			expect(ret.formatted_body).to.equal("<p>Foxies are <em>awesome</em>!<br></p>");
+		});
+		it("should handle attachments with a title and text", async () => {
+			const event = {
+				text: "",
+				attachments: [{
+					title: "Foxies!",
+					text: "Foxies are _awesome_ indeed!",
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("## Foxies!\nFoxies are _awesome_ indeed!\n");
+			expect(ret.formatted_body).to.equal("<p><strong>Foxies!</strong><br>Foxies are <em>awesome</em> indeed!<br></p>");
 		});
 		it("should handle attachment fields", async () => {
 			const event = {
