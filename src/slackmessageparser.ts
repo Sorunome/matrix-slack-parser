@@ -43,9 +43,16 @@ const USERGROUP_INSERT_REGEX = /\x01usergroup\x01([a-zA-Z0-9]*)\x01([^\x01]*)\x0
 const ID_USERGROUP_INSERT_REGEX = 1;
 const NAME_USERGROUP_INSERT_REGEX = 2;
 
+const MESSAGE_LINK_REGEX = /^https:\/\/(.+?)\.slack\.com\/archives\/([A-Z0-9]+)\/p(\d{10})(\d{6})$/;
+
 export interface ISlackMessageParserEntity {
 	mxid: string;
 	name: string;
+}
+
+export interface ISlackMessageParserMessageEntity {
+	mxid: string;
+	roomId: string;
 }
 
 export interface ISlackMessageParserCallbacks {
@@ -53,6 +60,7 @@ export interface ISlackMessageParserCallbacks {
 	getChannel: (id: string, name: string) => Promise<ISlackMessageParserEntity | null>;
 	getUsergroup: (id: string, name: string) => Promise<ISlackMessageParserEntity | null>;
 	getTeam: (id: string, name: string) => Promise<ISlackMessageParserEntity | null>;
+	getMessage: (teamDomain: string, channelId: string, messageId: string) => Promise<ISlackMessageParserMessageEntity | null>;
 	urlToMxc: (url: string) => Promise<string | null>;
 }
 
@@ -292,7 +300,19 @@ export class SlackBlocksParser {
 			}
 			case "link": {
 				const link = block as ISlackBlockLink;
-				const url = escapeHtml(link.url);
+				let url = escapeHtml(link.url);
+				if (opts.callbacks.getMessage) {
+					const match = MESSAGE_LINK_REGEX.exec(link.url);
+					if (match) {
+						const slackTeamDomain = match[1];
+						const slackChannelId = match[2];
+						const slackMessageId = `${match[3]}.${match[4]}`
+						const matrixMessage = await opts.callbacks.getMessage(slackTeamDomain, slackChannelId, slackMessageId);
+						if (matrixMessage) {
+							url = `${MATRIX_TO_LINK}${matrixMessage.roomId}/${matrixMessage.mxid}`
+						}
+					}
+				}
 				const content = link.text ? escapeHtml(link.text) : url;
 				return `<a href="${url}">${content}</a>`;
 			}
