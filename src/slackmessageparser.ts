@@ -306,10 +306,10 @@ export class SlackBlocksParser {
 					if (match) {
 						const slackTeamDomain = match[1];
 						const slackChannelId = match[2];
-						const slackMessageId = `${match[3]}.${match[4]}`
+						const slackMessageId = `${match[3]}.${match[4]}`;
 						const matrixMessage = await opts.callbacks.getMessage(slackTeamDomain, slackChannelId, slackMessageId);
 						if (matrixMessage) {
-							url = `${MATRIX_TO_LINK}${matrixMessage.roomId}/${matrixMessage.mxid}`
+							url = `${MATRIX_TO_LINK}${matrixMessage.roomId}/${matrixMessage.mxid}`;
 						}
 					}
 				}
