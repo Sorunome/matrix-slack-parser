@@ -17,7 +17,7 @@ limitations under the License.
 import {
 	ISlackMessage, AllBlocks, ISlackBlockRichText, ISlackRichTextSection, ISlackBlockText, ISlackBlockEmoji,
 	ISlackRichTextPre, ISlackRichTextQuote, ISlackRichTextList, ISlackBlockUser, ISlackBlockChannel, ISlackBlockBroadcast,
-	ISlackBlockLink, ISlackBlockUsergroup, ISlackBlockTeam, ISlackBlockDate, ISlackBlockColor,
+	ISlackBlockLink, ISlackBlockUsergroup, ISlackBlockTeam, ISlackBlockDate, ISlackBlockColor, ISlackBlockCall
 } from "./slacktypes";
 import * as escapeHtml from "escape-html";
 import * as unescapeHtml from "unescape-html";
@@ -386,6 +386,15 @@ export class SlackBlocksParser {
 				}
 				retStr += "</p>";
 				return retStr;
+			}
+			case "call": {
+				const call = block as ISlackBlockCall;
+				if (call.call && call.call.v1) {
+					const { name, join_url } = call.call.v1;
+					const content = name ? name : join_url;
+					return `<a href="${escapeHtml(join_url)}">${escapeHtml(content)}</a>`;
+				}
+				return `Can't get URL to call`;
 			}
 			default:
 				return `Unsupported block of type ${block.type}`;

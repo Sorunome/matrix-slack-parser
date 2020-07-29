@@ -85,6 +85,17 @@ export interface ISlackBlockDate extends Block {
 	fallback?: string;
 }
 
+// zoom call
+export interface ISlackBlockCall extends Block {
+	type: "call";
+	call: {
+		v1: {
+			join_url: string;
+			name: string;
+		}
+	};
+}
+
 // normal paragraph
 export interface ISlackRichTextSection extends Block {
 	type: "rich_text_section";
@@ -120,7 +131,7 @@ export interface ISlackBlockRichText extends Block {
 export type AllBlocks = KnownBlock | ISlackBlockRichText | ISlackRichTextSection | ISlackBlockText | ISlackBlockEmoji
 	| ISlackRichTextPre | ISlackRichTextQuote | ISlackRichTextList | ISlackBlockUser | ISlackBlockChannel
 	| ISlackBlockBroadcast | ISlackBlockLink | ISlackBlockUsergroup | ISlackBlockColor | ISlackBlockDate
-	| ISlackBlockTeam;
+	| ISlackBlockTeam | ISlackBlockCall;
 
 export interface ISlackMessageAttachment extends MessageAttachment {
 	author_id?: string;
