@@ -424,7 +424,7 @@ describe("SlackBlocksParser", () => {
 				type: "link",
 				url: "https://example.org",
 			} as any;
-			const ret = await blocksParser["parseBlock"]({} as any, block);
+			const ret = await blocksParser["parseBlock"]({callbacks: {}} as any, block);
 			expect(ret).to.equal("<a href=\"https://example.org\">https://example.org</a>");
 		});
 		it("should parse user blocks", async () => {

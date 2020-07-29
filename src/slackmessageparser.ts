@@ -304,9 +304,13 @@ export class SlackBlocksParser {
 				if (opts.callbacks.getMessage) {
 					const match = MESSAGE_LINK_REGEX.exec(link.url);
 					if (match) {
-						const slackTeamDomain = match[1];
-						const slackChannelId = match[2];
-						const slackMessageId = `${match[3]}.${match[4]}`;
+						const MATCH_TEAM = 1;
+						const MATCH_CHANNEL = 2;
+						const MATCH_MESSAGE_TOP = 3;
+						const MATCH_MESSAGE_BUTTOM = 4;
+						const slackTeamDomain = match[MATCH_TEAM];
+						const slackChannelId = match[MATCH_CHANNEL];
+						const slackMessageId = `${match[MATCH_MESSAGE_TOP]}.${match[MATCH_MESSAGE_BUTTOM]}`;
 						const matrixMessage = await opts.callbacks.getMessage(slackTeamDomain, slackChannelId, slackMessageId);
 						if (matrixMessage) {
 							url = `${MATRIX_TO_LINK}${matrixMessage.roomId}/${matrixMessage.mxid}`;
