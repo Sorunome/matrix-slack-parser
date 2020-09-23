@@ -215,7 +215,7 @@ export class SlackBlocksParser {
 				if (!mxc) {
 					return `<a href="${escapeHtml(img.image_url)}">${alt}</a>`;
 				}
-				return `<img alt="${alt}" title="${alt}" height="${EMOJI_SIZE}" src="${mxc}" />`;
+				return `<img alt="${alt}" title="${alt}" height="${EMOJI_SIZE}" src="${mxc}" data-mx-emoticon />`;
 			}
 			case "mrkdwn": {
 				// TODO: support verbatim flag
@@ -479,7 +479,7 @@ export class SlackMessageParser {
 					if (attachment.author_icon) {
 						const mxc = await opts.callbacks.urlToMxc(attachment.author_icon);
 						if (mxc) {
-							result.formatted_body += `<img height="${EMOJI_SIZE}" src="${mxc}" /> `;
+							result.formatted_body += `<img height="${EMOJI_SIZE}" src="${mxc}" data-mx-emoticon /> `;
 						}
 					}
 					let author_name = attachment.author_name;

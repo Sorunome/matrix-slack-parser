@@ -234,7 +234,7 @@ describe("SlackBlocksParser", () => {
 				urlToMxc: async (url) => url,
 			}} as any;
 			const ret = await blocksParser["parseElement"](opts, element);
-			expect(ret).to.equal("<img alt=\"Fox\" title=\"Fox\" height=\"32\" src=\"https://example.org/fox.png\" />");
+			expect(ret).to.equal("<img alt=\"Fox\" title=\"Fox\" height=\"32\" src=\"https://example.org/fox.png\" data-mx-emoticon />");
 		});
 		it("should parse image elements, if upload fails", async () => {
 			const blocksParser = new SlackBlocksParser(markdownParser);
@@ -755,7 +755,7 @@ describe("SlackMessageParser", () => {
 			}} as any;
 			const ret = await messageParser.FormatMessage(opts, event);
 			expect(ret.body).to.equal("[Fox](https://example.org)\n");
-			expect(ret.formatted_body).to.equal("<p><img height=\"32\" src=\"https://example.org/fox.png\" /> " +
+			expect(ret.formatted_body).to.equal("<p><img height=\"32\" src=\"https://example.org/fox.png\" data-mx-emoticon /> " +
 				"<a href=\"https://example.org\">Fox</a><br></p>");
 		});
 		it("should handle attachments with a title", async () => {
