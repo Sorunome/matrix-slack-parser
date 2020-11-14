@@ -381,7 +381,7 @@ export class MatrixMessageParser {
 
 	private async parseUlContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<IRes> {
 		opts.listDepth!++;
-		const entries = await this.arrayChildNodes(opts, node, ["li"]);
+		const entries = await this.arrayChildNodes(opts, node, ["LI"]);
 		opts.listDepth!--;
 		const bulletPoint = this.listBulletPoints[opts.listDepth! % this.listBulletPoints.length];
 
@@ -427,7 +427,7 @@ export class MatrixMessageParser {
 
 	private async parseOlContent(opts: IMatrixMessageParserOpts, node: Parser.HTMLElement): Promise<IRes> {
 		opts.listDepth!++;
-		const entries = await this.arrayChildNodes(opts, node, ["li"]);
+		const entries = await this.arrayChildNodes(opts, node, ["LI"]);
 		opts.listDepth!--;
 		let entry = 0;
 		const attrs = node.attributes;
@@ -612,7 +612,7 @@ export class MatrixMessageParser {
 		await Util.AsyncForEach(node.childNodes, async (child) => {
 			const thisTag = child.nodeType === Parser.NodeType.ELEMENT_NODE
 				? (child as Parser.HTMLElement).tagName : "";
-			if (thisTag === "p" && lastTag === "p") {
+			if (thisTag === "P" && lastTag === "P") {
 				reply.text += "\n\n";
 				reply.blocks.push({
 					type: "text",
@@ -641,45 +641,45 @@ export class MatrixMessageParser {
 		} else if (node.nodeType === Parser.NodeType.ELEMENT_NODE) {
 			const nodeHtml = node as Parser.HTMLElement;
 			switch (nodeHtml.tagName) {
-				case "em":
-				case "i": {
+				case "EM":
+				case "I": {
 					opts.style!.italic++;
 					const res = await this.walkChildNodes(opts, nodeHtml);
 					opts.style!.italic--;
 					res.text = `_${res.text}_`;
 					return res;
 				}
-				case "strong":
-				case "b": {
+				case "STRONG":
+				case "B": {
 					opts.style!.bold++;
 					const res = await this.walkChildNodes(opts, nodeHtml);
 					opts.style!.bold--;
 					res.text = `*${res.text}*`;
 					return res;
 				}
-				case "del":
-				case "strike":
-				case "s": {
+				case "DEL":
+				case "STRIKE":
+				case "S": {
 					opts.style!.strike++;
 					const res = await this.walkChildNodes(opts, nodeHtml);
 					opts.style!.strike--;
 					res.text = `~${res.text}~`;
 					return res;
 				}
-				case "code": {
+				case "CODE": {
 					opts.style!.code++;
 					const res = await this.walkChildNodes(opts, nodeHtml);
 					opts.style!.code--;
 					res.text = `\`${res.text}\``;
 					return res;
 				}
-				case "pre":
+				case "PRE":
 					return this.parsePreContent(opts, nodeHtml);
-				case "a":
+				case "A":
 					return await this.parsePillContent(opts, nodeHtml);
-				case "img":
+				case "IMG":
 					return await this.parseImageContent(opts, nodeHtml);
-				case "br":
+				case "BR":
 					return {
 						text: "\n",
 						blocks: [{
@@ -687,18 +687,18 @@ export class MatrixMessageParser {
 							text: "\n",
 						} as ISlackBlockText]
 					} as IRes;
-				case "blockquote":
+				case "BLOCKQUOTE":
 					return await this.parseBlockquoteContent(opts, nodeHtml);
-				case "ul":
+				case "UL":
 					return await this.parseUlContent(opts, nodeHtml);
-				case "ol":
+				case "OL":
 					return await this.parseOlContent(opts, nodeHtml);
-				case "mx-reply":
+				case "MX-REPLY":
 					return {
 						text: "",
 						blocks: [],
 					} as IRes;
-				case "hr":
+				case "HR":
 					return {
 						text: "\n----------\n",
 						blocks: [{
@@ -706,12 +706,12 @@ export class MatrixMessageParser {
 							text: "\n----------\n",
 						}],
 					} as IRes;
-				case "h1":
-				case "h2":
-				case "h3":
-				case "h4":
-				case "h5":
-				case "h6": {
+				case "H1":
+				case "H2":
+				case "H3":
+				case "H4":
+				case "H5":
+				case "H6": {
 					opts.style!.bold++;
 					const level = parseInt(nodeHtml.tagName[1], 10);
 					const res = await this.walkChildNodes(opts, nodeHtml);
@@ -732,7 +732,7 @@ export class MatrixMessageParser {
 						],
 					} as IRes;
 				}
-				case "span":
+				case "SPAN":
 					return await this.parseSpanContent(opts, nodeHtml);
 				default:
 					return await this.walkChildNodes(opts, nodeHtml);
