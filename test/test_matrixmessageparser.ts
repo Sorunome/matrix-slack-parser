@@ -212,7 +212,7 @@ describe("MatrixMessageParser", () => {
 		});
 		it("should handle code blocks", async () => {
 			const event = {
-				formatted_body: "<pre><code>foxies</code></pre>",
+				formatted_body: "<pre><code>foxies\n</code></pre>",
 			} as any;
 			const ret = await parser.FormatMessage({} as any, event);
 			expect(ret.text).to.equal("```foxies```");
@@ -238,6 +238,22 @@ describe("MatrixMessageParser", () => {
 					type: "rich_text_preformatted",
 					elements: [
 						{ type: "text", text: "foxies" },
+					],
+				}],
+			}]);
+		});
+		it("should handle code blocks withs paces", async () => {
+			const event = {
+				formatted_body: "<pre><code>    foxies</code></pre>",
+			} as any;
+			const ret = await parser.FormatMessage({} as any, event);
+			expect(ret.text).to.equal("```    foxies```");
+			expect(ret.blocks).eql([{
+				type: "rich_text",
+				elements: [{
+					type: "rich_text_preformatted",
+					elements: [
+						{ type: "text", text: "    foxies" },
 					],
 				}],
 			}]);

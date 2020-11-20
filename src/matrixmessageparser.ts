@@ -67,7 +67,7 @@ export class MatrixMessageParser {
 			opts.listDepth = 0;
 			// parser needs everything in html elements
 			// so we wrap everything in <div> just to be sure that all is wrapped
-			const parsed = Parser.parse(`<div>${eventContent.formatted_body}</div>`, {
+			const parsed = Parser.parse(eventContent.formatted_body, {
 				lowerCaseTagName: true,
 				pre: true,
 			} as any); // tslint:disable-line no-any
@@ -195,7 +195,9 @@ export class MatrixMessageParser {
 		let text = node.text;
 		const match = text.match(/^<code([^>]*)>/i);
 		if (!match) {
-			text = text.trim();
+			if (text[text.length - 1] === "\n") {
+				text = text.slice(0, -1);
+			}
 			return {
 				text: `\`\`\`${text}\`\`\`\n`,
 				blocks: [{
@@ -211,7 +213,9 @@ export class MatrixMessageParser {
 		text = text.substr(match[0].length);
 		// remove </code> closing tag
 		text = text.replace(/<\/code>$/i, "");
-		text = text.trim();
+		if (text[text.length - 1] === "\n") {
+			text = text.slice(0, -1);
+		}
 		// slack doesn't support code language
 		return {
 			text: `\`\`\`${text}\`\`\`\n`,
