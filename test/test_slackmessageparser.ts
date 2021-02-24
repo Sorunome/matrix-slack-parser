@@ -101,8 +101,8 @@ describe("SlackMarkdownParser", () => {
 					};
 				},
 			}} as any;
-			const ret = await markdownParser.parseMarkdown(opts, { slackOnly: false }, "Hey <#blah>!");
-			expect(ret).to.equal("Hey <a href=\"https://matrix.to/#/#_slack_blah:example.org\">Chanblah</a>!");
+			const ret = await markdownParser.parseMarkdown(opts, { slackOnly: false }, "Hey <#blah_ro-om>!");
+			expect(ret).to.equal("Hey <a href=\"https://matrix.to/#/#_slack_blah_ro-om:example.org\">Chanblah_ro-om</a>!");
 		});
 		it("should insert name-only if html disabled", async () => {
 			const opts = { callbacks: {
@@ -154,8 +154,8 @@ describe("SlackMarkdownParser", () => {
 					};
 				},
 			}} as any;
-			const ret = await markdownParser.parseMarkdown(opts, { slackOnly: false }, "Hey <!subteam^blah>!");
-			expect(ret).to.equal("Hey <a href=\"https://matrix.to/#/+_slack_blah:example.org\">Groupblah</a>!");
+			const ret = await markdownParser.parseMarkdown(opts, { slackOnly: false }, "Hey <!subteam^blah_gro-up>!");
+			expect(ret).to.equal("Hey <a href=\"https://matrix.to/#/+_slack_blah_gro-up:example.org\">Groupblah_gro-up</a>!");
 		});
 		it("should set name only, if the mxid is blank", async () => {
 			const opts = { callbacks: {

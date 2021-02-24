@@ -31,15 +31,15 @@ const MATRIX_TO_LINK = "https://matrix.to/#/";
 const EMOJI_SIZE = 32;
 
 const FLAG = "\x01";
-const USER_INSERT_REGEX = /\x01user\x01([a-zA-Z0-9]*)\x01([^\x01]*)\x01/;
+const USER_INSERT_REGEX = /\x01user\x01([a-zA-Z0-9_.-]*)\x01([^\x01]*)\x01/;
 const ID_USER_INSERT_REGEX = 1;
 const NAME_USER_INSERT_REGEX = 2;
 
-const CHAN_INSERT_REGEX = /\x01chan\x01([a-zA-Z0-9]*)\x01([^\x01]*)\x01/;
+const CHAN_INSERT_REGEX = /\x01chan\x01([a-zA-Z0-9_-]*)\x01([^\x01]*)\x01/;
 const ID_CHAN_INSERT_REGEX = 1;
 const NAME_CHAN_INSERT_REGEX = 2;
 
-const USERGROUP_INSERT_REGEX = /\x01usergroup\x01([a-zA-Z0-9]*)\x01([^\x01]*)\x01/;
+const USERGROUP_INSERT_REGEX = /\x01usergroup\x01([a-zA-Z0-9_-]*)\x01([^\x01]*)\x01/;
 const ID_USERGROUP_INSERT_REGEX = 1;
 const NAME_USERGROUP_INSERT_REGEX = 2;
 
