@@ -134,6 +134,7 @@ export type AllBlocks = KnownBlock | ISlackBlockRichText | ISlackRichTextSection
 	| ISlackBlockTeam | ISlackBlockCall;
 
 export interface ISlackMessageAttachment extends MessageAttachment {
+	blocks?: AllBlocks[];
 	author_id?: string;
 }
 
