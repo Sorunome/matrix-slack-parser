@@ -84,6 +84,7 @@ export class SlackMarkdownParser {
 			escapeHTML: !mdOpts.slackOnly,
 			slackCallbacks: this.getSlackeParseCallbacks(opts, mdOpts),
 			noExtraSpanTags: true,
+			noExtraEmojiSpanTags: true,
 		});
 
 		content = await this.InsertUserPills(opts, mdOpts, content);
