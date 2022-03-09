@@ -857,5 +857,24 @@ describe("SlackMessageParser", () => {
 			expect(ret.body).to.equal("byebye\n");
 			expect(ret.formatted_body).to.equal("<p><sup>byebye</sup><br></p>");
 		});
+		it("should handle attachments with blocks", async () => {
+			const event = {
+				text: "blocks attached",
+				attachments: [{
+					blocks: [{
+						type: 'section',
+						block_id: '12rD',
+						text: {
+							type: 'mrkdwn',
+							text: '*BOLD*: hello',
+							verbatim: false
+						}
+					}],
+				}],
+			} as any;
+			const ret = await messageParser.FormatMessage({} as any, event);
+			expect(ret.body).to.equal("blocks attached\n---------------------\n");
+			expect(ret.formatted_body).to.equal("blocks attached<br><hr><p><p><strong>BOLD</strong>: hello</p></p>");
+		});
 	});
 });
