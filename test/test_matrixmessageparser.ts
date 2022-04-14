@@ -623,5 +623,29 @@ describe("MatrixMessageParser", () => {
 				}],
 			}]);
 		});
+		it("should parse @room to @here, if configured", async () => {
+			const event = {
+				formatted_body: "Hey @room!",
+			} as any;
+			const opts = {
+				callbacks: {
+					canNotifyRoom: async () => true,
+				},
+				roomBroadcast: 'here'
+			} as any;
+			const ret = await parser.FormatMessage(opts, event);
+			expect(ret.text).to.equal("Hey <!here>!");
+			expect(ret.blocks).eql([{
+				type: "rich_text",
+				elements: [{
+					type: "rich_text_section",
+					elements: [
+						{ type: "text", text: "Hey " },
+						{ type: "broadcast", range: "here" },
+						{ type: "text", text: "!" },
+					],
+				}],
+			}]);
+		});
 	});
 });
