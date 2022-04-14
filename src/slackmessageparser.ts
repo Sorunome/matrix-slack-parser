@@ -539,6 +539,9 @@ export class SlackMessageParser {
 					const url = escapeHtml(attachment.image_url);
 					result.formatted_body += `Image: <a href="${url}">${url}</a><br>`;
 				}
+				if (attachment.blocks && attachment.blocks.length > 0) {
+					result.formatted_body += await this.blocksParser.parseBlocks(opts, attachment.blocks);
+				}
 				const footerParts: string[] = [];
 				const footerPartsHtml: string[] = [];
 				if (attachment.footer) {
