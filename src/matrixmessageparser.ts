@@ -41,6 +41,7 @@ interface IMatrixMessageParserStyle {
 export interface IMatrixMessageParserOpts {
 	callbacks: IMatrixMessageParserCallbacks;
 	listDepth?: number;
+	roomBroadcast?: 'channel' | 'here' | 'everyone';
 	style?: IMatrixMessageParserStyle;
 }
 
@@ -89,9 +90,10 @@ export class MatrixMessageParser {
 		const canHighlight = plainMsg.includes("@room") && await opts.callbacks.canNotifyRoom();
 		// first we want to construct the "msg", which is the text representative
 		const escapeChars = ["*", "_", "~", "`"];
+		const broadcast = opts.roomBroadcast || "channel";
 		const escapeSlackInternal = (s: string): string => {
 			if (s.includes("@room") && canHighlight) {
-				s = s.replace("@room", "<!channel>");
+				s = s.replace("@room", `<!${broadcast}>`);
 			}
 			const match = s.match(/\bhttps?:\/\//);
 			if (match) {
@@ -131,7 +133,7 @@ export class MatrixMessageParser {
 					},
 					{
 						type: "broadcast",
-						range: "channel",
+						range: broadcast,
 					},
 					{
 						type: "text",
