@@ -1,3 +1,5 @@
+**THIS PROJECT HAS BEEN MIGRATED OVER TO GITLAB: [mx-puppet-bridge](https://gitlab.com/mx-puppet/slack/matrix-slack-parser)**
+
 # matrix-slack-parser
 This package is a message parser for sending messages between [Matrix](https://matrix.org/) and [Slack](https://slack.com/). For that, it has two parsers: `SlackMessageParser` and `MatrixMessageParser`.
 
